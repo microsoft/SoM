@@ -1,13 +1,16 @@
-# SoM
+# Set-of-Marks (SoM)
 
-> We present Set-of-Mark (SoM), simply overlaying a number of spatial and speakable marks on the images, to unleash the visual grounding abilities of large multimodal models (LMMs), such as GPT-4V.
+We present **S**et-**o**f-**M**ark (SoM), simply overlaying a number of spatial and speakable marks on the images, to unleash the visual grounding abilities of large multimodal models (LMMs), such as GPT-4V.
 
 ![teaser_github](https://github.com/microsoft/SoM/assets/11957155/e4720105-b4b2-40c0-9303-2d8f1cb27d91)
+### Comparing standard GPT-4V and its combination with SoM Prompting
 ![method2_xyz](https://github.com/microsoft/SoM/assets/34880758/32a269c4-8465-4eaf-aa90-48e9534649d9)
-
-![method4_xyz](https://github.com/microsoft/SoM/assets/34880758/a9cddc47-f975-4991-b35a-72c50813c092)
+### Mask proposal generation method
 ![method3_xyz](https://github.com/microsoft/SoM/assets/34880758/2443572b-995a-4f29-95df-3e3fc0f510d6)
-
+Users can select which granularity of masks to generate, and which mode to use between automatic (top) and interactive (bottom). A higher alpha blending value (0.4) is used for better visualization.
+### Mark types used in SoM
+![method4_xyz](https://github.com/microsoft/SoM/assets/34880758/a9cddc47-f975-4991-b35a-72c50813c092)
+### Evaluation tasks examples
 ![task_examples](https://github.com/microsoft/SoM/assets/34880758/5676ee40-a051-404f-8eed-74fe87020916)
 ## Use case
 ### Grounded Reasoning and Cross-Image Reference
