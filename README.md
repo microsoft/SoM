@@ -59,7 +59,7 @@ scenario.
 <img width="729" alt="Screenshot 2023-10-18 at 10 21 24" src="https://github.com/microsoft/SoM/assets/34880758/7f139250-5350-4790-a35c-444ec2ec883b">
 
 ### :deciduous_tree: Results
-
+We conduct experiments on various vision tasks to verify the effectiveness of our SoM. Results show that GPT4V+SoM outperforms specialists on most vision tasks and is comparable to MaskDINO on COCO panoptic segmentation.
 ![main_results](https://github.com/microsoft/SoM/assets/34880758/722ac979-6c7f-4740-9625-cac38060e0ad)
 
 ## :hearts: Acknowledgement
