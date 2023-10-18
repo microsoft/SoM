@@ -46,3 +46,23 @@ scenario.
 ### :deciduous_tree: Results
 
 ![main_results](https://github.com/microsoft/SoM/assets/34880758/722ac979-6c7f-4740-9625-cac38060e0ad)
+
+## :hearts: Acknowledgement
+
+Our model adopts the following models to propose masks:
+- [Mask DINO](https://github.com/IDEA-Research/MaskDINO)
+- [SEEM](https://github.com/IDEA-Research/OpenSeeD)
+- [Semantic-SAM](https://github.com/UX-Decoder/Semantic-SAM)
+- [Segment Anything](https://github.com/facebookresearch/segment-anything) for the SA-1B data.
+
+We also thank GPT-4V for providing a strong foundational model!
+## :black_nib: Citation
+
+If you find our work helpful for your research, please consider citing the following BibTeX entry.   
+```bibtex
+@article{yang2023setofmark,
+      title={Set-of-Mark Prompting Unleashes Extraordinary Visual Grounding in GPT-4V}, 
+      author={Jianwei Yang and Hao Zhang and Feng Li and Xueyan Zou and Chunyuan Li and Jianfeng Gao},
+      journal={arXiv preprint arXiv:2310.11441},
+      year={2023},
+}
