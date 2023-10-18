@@ -9,13 +9,20 @@
 ### :round_pushpin: Mask proposal generation method
 ![method3_xyz](https://github.com/microsoft/SoM/assets/34880758/2443572b-995a-4f29-95df-3e3fc0f510d6)
 Users can select which granularity of masks to generate, and which mode to use between automatic (top) and interactive (bottom). A higher alpha blending value (0.4) is used for better visualization.
-### :unicorn: Mark types used in SoM
+### :unicorn: Interleaved Prompt
+<img width="975" alt="Screenshot 2023-10-18 at 10 06 18" src="https://github.com/microsoft/SoM/assets/34880758/859edfda-ab04-450c-bd28-93762460ac1d">
+
+### :medal_military: Mark types used in SoM
+<img width="946" alt="Screenshot 2023-10-18 at 10 12 18" src="https://github.com/microsoft/SoM/assets/34880758/f5e0c0b0-58de-4b60-bf01-4906dbcb229e">
+
 ![method4_xyz](https://github.com/microsoft/SoM/assets/34880758/a9cddc47-f975-4991-b35a-72c50813c092)
 ### :volcano: Evaluation tasks examples
-![task_examples](https://github.com/microsoft/SoM/assets/34880758/5676ee40-a051-404f-8eed-74fe87020916)
+
 ## Use case
 ### :tulip: Grounded Reasoning and Cross-Image Reference
-![use_case_compare](https://github.com/microsoft/SoM/assets/34880758/13d1fc38-e605-41c0-8b54-009d0ce98e1e)
+
+<img width="972" alt="Screenshot 2023-10-18 at 10 10 41" src="https://github.com/microsoft/SoM/assets/34880758/033cd16c-876c-4c03-961e-590a4189bc9e">
+
 In comparison to GPT-4V without SoM, adding marks enables GPT-4V to ground the
 reasoning on detailed contents of the image (Left). Clear object cross-image references are observed
 on the right.
