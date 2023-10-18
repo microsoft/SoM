@@ -13,10 +13,9 @@ Users can select which granularity of masks to generate, and which mode to use b
 <img width="975" alt="Screenshot 2023-10-18 at 10 06 18" src="https://github.com/microsoft/SoM/assets/34880758/859edfda-ab04-450c-bd28-93762460ac1d">
 
 ### :medal_military: Mark types used in SoM
-<img width="946" alt="Screenshot 2023-10-18 at 10 12 18" src="https://github.com/microsoft/SoM/assets/34880758/f5e0c0b0-58de-4b60-bf01-4906dbcb229e">
-
 ![method4_xyz](https://github.com/microsoft/SoM/assets/34880758/a9cddc47-f975-4991-b35a-72c50813c092)
 ### :volcano: Evaluation tasks examples
+<img width="946" alt="Screenshot 2023-10-18 at 10 12 18" src="https://github.com/microsoft/SoM/assets/34880758/f5e0c0b0-58de-4b60-bf01-4906dbcb229e">
 
 ## Use case
 ### :tulip: Grounded Reasoning and Cross-Image Reference
