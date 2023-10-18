@@ -28,28 +28,36 @@ reasoning on detailed contents of the image (Left). Clear object cross-image ref
 on the right.
 17
 ### :camping: Problem Solving
-![use_case_problem_solving](https://github.com/microsoft/SoM/assets/34880758/e09920d7-e6cf-4297-86c3-e08b8d0f9e21)
+<img width="972" alt="Screenshot 2023-10-18 at 10 18 03" src="https://github.com/microsoft/SoM/assets/34880758/8b112126-d164-47d7-b18c-b4b51b903d57">
+
 Case study on solving CAPTCHA. GPT-4V gives the wrong answer with a wrong number
 of squares while finding the correct squares with corresponding marks after SoM prompting.
 ### :mountain_snow: Knowledge Sharing
-![use_case_personalized](https://github.com/microsoft/SoM/assets/34880758/a78fd954-69e0-4816-a7c0-04698448293f)
+<img width="733" alt="Screenshot 2023-10-18 at 10 18 44" src="https://github.com/microsoft/SoM/assets/34880758/dc753c3f-ada8-47a4-83f1-1576bcfb146a">
+
 Case study on an image of dish for GPT-4V. GPT-4V does not produce a grounded answer
 with the original image. Based on SoM prompting, GPT-4V not only speaks out the ingredients but
 also corresponds them to the regions.
 ### :mosque: Personalized Suggestion
-![use_case_knowledge_share](https://github.com/microsoft/SoM/assets/34880758/b2489e73-ddf4-4c08-8e99-0790a1aa2b0b)
+<img width="733" alt="Screenshot 2023-10-18 at 10 19 12" src="https://github.com/microsoft/SoM/assets/34880758/88188c90-84f2-49c6-812e-44770b0c2ca5">
+
 SoM-pormpted GPT-4V gives very precise suggestions while the original one fails, even
 with hallucinated foods, e.g., soft drinks
 ### :blossom: Tool Usage Instruction
-![use_case_tooluse](https://github.com/microsoft/SoM/assets/34880758/00e5c89b-dbba-4755-a39c-056e229f5c18)
-Likewise, GPT4-V with SoM can help to provide thorough tool usage instruction, teaching
+<img width="734" alt="Screenshot 2023-10-18 at 10 19 39" src="https://github.com/microsoft/SoM/assets/34880758/9b35b143-96af-41bd-ad83-9c1f1e0f322f">
+Likewise, GPT4-V with SoM can help to provide thorough tool usage instruction
+, teaching
 users the function of each button on a controller. Note that this image is not fully labeled, while
 GPT-4V can also provide information about the non-labeled buttons.
+
 ### :sunflower: 2D Game Planning
-![use_case_game_plan](https://github.com/microsoft/SoM/assets/34880758/9caf1c28-b1c3-48fc-b852-b5f7807b1488)
+<img width="730" alt="Screenshot 2023-10-18 at 10 20 03" src="https://github.com/microsoft/SoM/assets/34880758/0bc86109-5512-4dee-aac9-bab0ef96ed4c">
+
 GPT-4V with SoM gives a reasonable suggestion on how to achieve a goal in a gaming
 scenario.
-22
+### :mosque: Simulated Navigation
+<img width="729" alt="Screenshot 2023-10-18 at 10 21 24" src="https://github.com/microsoft/SoM/assets/34880758/7f139250-5350-4790-a35c-444ec2ec883b">
+
 ### :deciduous_tree: Results
 
 ![main_results](https://github.com/microsoft/SoM/assets/34880758/722ac979-6c7f-4740-9625-cac38060e0ad)
