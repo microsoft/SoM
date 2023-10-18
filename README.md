@@ -10,6 +10,7 @@
 ![method3_xyz](https://github.com/microsoft/SoM/assets/34880758/2443572b-995a-4f29-95df-3e3fc0f510d6)
 Users can select which granularity of masks to generate, and which mode to use between automatic (top) and interactive (bottom). A higher alpha blending value (0.4) is used for better visualization.
 ### :unicorn: Interleaved Prompt
+SoM enables interleaved prompts which include textual and visual content. The visual content can be represented using the region indices.
 <img width="975" alt="Screenshot 2023-10-18 at 10 06 18" src="https://github.com/microsoft/SoM/assets/34880758/859edfda-ab04-450c-bd28-93762460ac1d">
 
 ### :medal_military: Mark types used in SoM
