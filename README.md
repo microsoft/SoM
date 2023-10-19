@@ -1,8 +1,12 @@
-# Set-of-Mark Prompting -- Let's use Visual Prompting for Vision!
+# Set-of-Mark Prompting - Let's use Visual Prompting for Vision!
 
 :grapes: \[[Read our arXiv Paper](https://arxiv.org/pdf/2310.11441.pdf)\] &nbsp; :apple: \[[Project Page](https://som-gpt4v.github.io/)\] 
 
-:fire: We present **S**et-**o**f-**M**ark (SoM) prompting, simply overlaying a number of spatial and speakable marks on the images, to unleash the visual grounding abilities of large multimodal models (LMMs), such as GPT-4V.
+[Jianwei Yang](https://jwyang.github.io/)\*⚑, [Hao Zhang](https://scholar.google.com/citations?user=B8hPxMQAAAAJ&hl=en)\*, [Feng Li](https://fengli-ust.github.io/)\*, [Xueyan Zou](https://maureenzou.github.io/)\*, [Chunyuan Li](https://chunyuan.li/), [Jianfeng Gao](https://www.microsoft.com/en-us/research/people/jfgao/)
+
+\* Core Contributors &nbsp;&nbsp;&nbsp;&nbsp; ⚑ Project Lead
+
+We present **S**et-**o**f-**M**ark (SoM) prompting, simply overlaying a number of spatial and speakable marks on the images, to unleash the visual grounding abilities of large multimodal models (LMMs), such as GPT-4V.
 
 ![teaser_github](https://github.com/microsoft/SoM/assets/11957155/e4720105-b4b2-40c0-9303-2d8f1cb27d91)
 
