@@ -14,6 +14,10 @@ We present **S**et-**o**f-**M**ark (SoM) prompting, simply overlaying a number o
 
 * [10/18] We are going to release the SoM toolbox very soon. Stay tunned!
 
+### 🔗 Related links
+
+* Roboflow implementation of SoM: [Set-of-Mark Prompting by Roboflow](https://github.com/SkalskiP/SoM.git)
+
 ### :point_right: Comparing standard GPT-4V and its combination with SoM Prompting
 
 ![method2_xyz](https://github.com/microsoft/SoM/assets/34880758/32a269c4-8465-4eaf-aa90-48e9534649d9)
