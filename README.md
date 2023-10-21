@@ -12,11 +12,20 @@ We present **S**et-**o**f-**M**ark (SoM) prompting, simply overlaying a number o
 
 ### 🔥 News
 
-* [10/18] We are going to release the SoM toolbox very soon. Stay tunned!
+* [10/18] We are going to release the SoM toolbox very soon. Stay tuned!
 
 ### 🔗 Related links
 
-* Implementation of SoM by @SkalskiP from Roboflow: [Set-of-Mark Prompting by Roboflow](https://github.com/SkalskiP/SoM.git)
+Our method compiles the following models to generate the set of marks:
+
+- [Mask DINO](https://github.com/IDEA-Research/MaskDINO): State-of-the-art closed-set image segmentation model
+- [SEEM](https://github.com/IDEA-Research/OpenSeeD): Versatile, promptable, interactive and semantic-aware segmentation model
+- [Semantic-SAM](https://github.com/UX-Decoder/Semantic-SAM): Segment and recognize anything at any granularity
+- [Segment Anything](https://github.com/facebookresearch/segment-anything): Segment anything
+
+We are standing on the shoulder of the giant GPT-4V ([playground](https://chat.openai.com/))!
+
+* [Set-of-Mark Prompting by Roboflow](https://github.com/SkalskiP/SoM.git): Reimplementation of SoM by @SkalskiP from Roboflow
 
 ### :point_right: Comparing standard GPT-4V and its combination with SoM Prompting
 
@@ -77,15 +86,6 @@ scenario.
 We conduct experiments on various vision tasks to verify the effectiveness of our SoM. Results show that GPT4V+SoM outperforms specialists on most vision tasks and is comparable to MaskDINO on COCO panoptic segmentation.
 ![main_results](https://github.com/microsoft/SoM/assets/34880758/722ac979-6c7f-4740-9625-cac38060e0ad)
 
-## :hearts: Acknowledgement
-
-Our model adopts the following models to propose masks:
-- [Mask DINO](https://github.com/IDEA-Research/MaskDINO)
-- [SEEM](https://github.com/IDEA-Research/OpenSeeD)
-- [Semantic-SAM](https://github.com/UX-Decoder/Semantic-SAM)
-- [Segment Anything](https://github.com/facebookresearch/segment-anything) for the SA-1B data.
-
-We also thank GPT-4V for providing a strong foundational model!
 ## :black_nib: Citation
 
 If you find our work helpful for your research, please consider citing the following BibTeX entry.   
