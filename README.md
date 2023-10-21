@@ -1,4 +1,4 @@
-# Set-of-Mark Prompting - Let's use Visual Prompting for Vision!
+# Set-of-Mark Prompting - Visual Prompting for Vision!
 
 :grapes: \[[Read our arXiv Paper](https://arxiv.org/pdf/2310.11441.pdf)\] &nbsp; :apple: \[[Project Page](https://som-gpt4v.github.io/)\] 
 
