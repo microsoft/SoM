@@ -26,7 +26,7 @@ Our method compiles the following models to generate the set of marks:
 We are standing on the shoulder of the giant GPT-4V ([playground](https://chat.openai.com/))!
 
 * [Set-of-Mark Prompting by Roboflow](https://github.com/SkalskiP/SoM.git): Reimplementation of SoM by @SkalskiP from Roboflow
-
+* [Set-of-Mark Prompting for UI Navigation Agent](https://github.com/ddupont808/GPT-4V-Act): A really brilliant work using GPT-4V and SoM as a web copilot! 
 ### :point_right: Comparing standard GPT-4V and its combination with SoM Prompting
 
 ![method2_xyz](https://github.com/microsoft/SoM/assets/34880758/32a269c4-8465-4eaf-aa90-48e9534649d9)
