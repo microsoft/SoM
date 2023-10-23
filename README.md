@@ -30,6 +30,31 @@ Our method compiles the following models to generate the set of marks:
 
 We are standing on the shoulder of the giant GPT-4V ([playground](https://chat.openai.com/))!
 
+### :rocket: Quick Start
+
+* Installation Pacakges
+
+```bash
+# install SEEM
+pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once.git@package
+# install SAM
+pip install git+https://github.com/facebookresearch/segment-anything.git
+# install Semantic-SAM
+pip install git+https://github.com/UX-Decoder/Semantic-SAM.git@package
+```
+
+* Download the pretrained models
+
+```bash
+sh download_ckpt.sh
+```
+
+* Run the demo
+
+```bash
+python demo_som.py
+```
+
 ### :point_right: Comparing standard GPT-4V and its combination with SoM Prompting
 
 ![method2_xyz](https://github.com/microsoft/SoM/assets/34880758/32a269c4-8465-4eaf-aa90-48e9534649d9)
