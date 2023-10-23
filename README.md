@@ -24,7 +24,8 @@ Fascinating applications of SoM and LMMs:
 Our method compiles the following models to generate the set of marks:
 
 - [Mask DINO](https://github.com/IDEA-Research/MaskDINO): State-of-the-art closed-set image segmentation model
-- [SEEM](https://github.com/IDEA-Research/OpenSeeD): Versatile, promptable, interactive and semantic-aware segmentation model
+- [OpenSeeD](https://github.com/IDEA-Research/OpenSeeD): State-of-the-art open-vocabulary image segmentation model 
+- [SEEM](https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once): Versatile, promptable, interactive and semantic-aware segmentation model
 - [Semantic-SAM](https://github.com/UX-Decoder/Semantic-SAM): Segment and recognize anything at any granularity
 - [Segment Anything](https://github.com/facebookresearch/segment-anything): Segment anything
 
