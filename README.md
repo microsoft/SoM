@@ -14,6 +14,10 @@ We present **S**et-**o**f-**M**ark (SoM) prompting, simply overlaying a number o
 
 * [10/23] We released the SoM toolbox code for generating set-of-mark prompts for GPT-4V. Try it out!
 
+### 🗒️ Todos
+
+- [ ] Release vision benchmarks used in our paper
+
 ### 🔗 Related links
 
 Fascinating applications of SoM and LMMs:
