@@ -61,6 +61,10 @@ sh download_ckpt.sh
 python demo_som.py
 ```
 
+Potential solutions for some common issues:
+
+* [Errors when installing Semantic-SAM](https://github.com/microsoft/SoM/issues/3)
+
 ### :point_right: Comparing standard GPT-4V and its combination with SoM Prompting
 ![teaser_github](https://github.com/microsoft/SoM/assets/11957155/e4720105-b4b2-40c0-9303-2d8f1cb27d91)
 
