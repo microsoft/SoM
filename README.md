@@ -61,6 +61,10 @@ sh download_ckpt.sh
 python demo_som.py
 ```
 
+And you will see this interface:
+
+![som_toolbox](assets/som_toolbox_interface.jpg)
+
 Potential solutions for some common issues:
 
 * [Errors when installing Semantic-SAM](https://github.com/microsoft/SoM/issues/3)
