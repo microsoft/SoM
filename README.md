@@ -47,6 +47,8 @@ pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-
 pip install git+https://github.com/facebookresearch/segment-anything.git
 # install Semantic-SAM
 pip install git+https://github.com/UX-Decoder/Semantic-SAM.git@package
+# install Deformable Convolution for Semantic-SAM
+cd ops && sh make.sh && cd ..
 ```
 
 * Download the pretrained models
