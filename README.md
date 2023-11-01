@@ -49,6 +49,10 @@ pip install git+https://github.com/facebookresearch/segment-anything.git
 pip install git+https://github.com/UX-Decoder/Semantic-SAM.git@package
 # install Deformable Convolution for Semantic-SAM
 cd ops && sh make.sh && cd ..
+
+# common error fix:
+python -m pip install 'git+https://github.com/MaureenZOU/detectron2-xyz.git'
+pip install mpi4py
 ```
 
 * Download the pretrained models
