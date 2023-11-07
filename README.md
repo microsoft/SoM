@@ -17,6 +17,8 @@ We present **S**et-**o**f-**M**ark (SoM) prompting, simply overlaying a number o
 export OPENAI_API_KEY=YOUR_API_KEY
 python demo_gpt4v_som.py
 ```
+![som_toolbox](examples/gpt-4v-som-example.jpg)
+
 * [10/23] We released the SoM toolbox code for generating set-of-mark prompts for GPT-4V. Try it out!
 
 ### 🗒️ Todos
