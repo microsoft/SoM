@@ -1,6 +1,7 @@
 import os
 import base64
 import requests
+from io import BytesIO
 
 # Get OpenAI API Key from environment variable
 api_key = os.environ["OPENAI_API_KEY"]
@@ -10,31 +11,36 @@ headers = {
 }
 
 metaprompt = '''
-- You always generate the answer in markdown format. For any marks mentioned in your answer, please highlight them in a red color and bold font.
+- For any marks mentioned in your answer, please highlight them with [].
 '''    
 
 # Function to encode the image
-def encode_image(image_path):
+def encode_image_from_file(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
 
-def prepare_inputs(message):
+def encode_image_from_pil(image):
+    buffered = BytesIO()
+    image.save(buffered, format="JPEG")
+    return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
-    # Path to your image
-    image_path = "temp.jpg"
+def prepare_inputs(message, image):
 
-    # Getting the base64 string
-    base64_image = encode_image(image_path)
+    # # Path to your image
+    # image_path = "temp.jpg"
+    # # Getting the base64 string
+    # base64_image = encode_image(image_path)
+    base64_image = encode_image_from_pil(image)
 
     payload = {
         "model": "gpt-4-vision-preview",
         "messages": [
-        # {
-        #     "role": "system",
-        #     "content": [
-        #         metaprompt
-        #     ]
-        # }, 
+        {
+            "role": "system",
+            "content": [
+                metaprompt
+            ]
+        }, 
         {
             "role": "user",
             "content": [
@@ -51,13 +57,13 @@ def prepare_inputs(message):
             ]
         }
         ],
-        "max_tokens": 300
+        "max_tokens": 800
     }
 
     return payload
 
-def request_gpt4v(message):
-    payload = prepare_inputs(message)
+def request_gpt4v(message, image):
+    payload = prepare_inputs(message, image)
     response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
     res = response.json()['choices'][0]['message']['content']
     return res

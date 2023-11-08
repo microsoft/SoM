@@ -1173,7 +1173,7 @@ class Visualizer:
 
         if text is not None and has_valid_segment:
             # lighter_color = tuple([x*0.2 for x in color])
-            lighter_color = self._change_color_brightness(color, brightness_factor=0.7)
+            lighter_color = [1,1,1] # self._change_color_brightness(color, brightness_factor=0.7)
             self._draw_number_in_mask(binary_mask, text, lighter_color, label_mode)
         return self.output
 

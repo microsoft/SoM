@@ -62,7 +62,6 @@ with torch.no_grad():
 
 @torch.no_grad()
 def inference(image, slider, mode, alpha, label_mode, anno_mode, *args, **kwargs):
-
     if slider < 1.5:
         model_name = 'seem'
     elif slider > 2.5:

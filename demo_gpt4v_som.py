@@ -76,8 +76,13 @@ with torch.no_grad():
     with torch.autocast(device_type='cuda', dtype=torch.float16):
         model_seem.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
 
+history_images = []
+history_masks = []
+history_texts = []
 @torch.no_grad()
 def inference(image, slider, mode, alpha, label_mode, anno_mode, *args, **kwargs):
+    global history_images; history_images = []
+    global history_masks; history_masks = []    
     if slider < 1.5:
         model_name = 'seem'
     elif slider > 2.5:
@@ -119,68 +124,54 @@ def inference(image, slider, mode, alpha, label_mode, anno_mode, *args, **kwargs
 
         if model_name == 'semantic-sam':
             model = model_semsam
-            output = inference_semsam_m2m_auto(model, image['image'], level, text, text_part, text_thresh, text_size, hole_scale, island_scale, semantic, label_mode=label_mode, alpha=alpha, anno_mode=anno_mode, *args, **kwargs)
+            output, mask = inference_semsam_m2m_auto(model, image['image'], level, text, text_part, text_thresh, text_size, hole_scale, island_scale, semantic, label_mode=label_mode, alpha=alpha, anno_mode=anno_mode, *args, **kwargs)
 
         elif model_name == 'sam':
             model = model_sam
             if mode == "Automatic":
-                output = inference_sam_m2m_auto(model, image['image'], text_size, label_mode, alpha, anno_mode)
+                output, mask = inference_sam_m2m_auto(model, image['image'], text_size, label_mode, alpha, anno_mode)
             elif mode == "Interactive":
-                output = inference_sam_m2m_interactive(model, image['image'], spatial_masks, text_size, label_mode, alpha, anno_mode)
+                output, mask = inference_sam_m2m_interactive(model, image['image'], spatial_masks, text_size, label_mode, alpha, anno_mode)
 
         elif model_name == 'seem':
             model = model_seem
             if mode == "Automatic":
-                output = inference_seem_pano(model, image['image'], text_size, label_mode, alpha, anno_mode)
+                output, mask = inference_seem_pano(model, image['image'], text_size, label_mode, alpha, anno_mode)
             elif mode == "Interactive":
-                output = inference_seem_interactive(model, image['image'], spatial_masks, text_size, label_mode, alpha, anno_mode)
+                output, mask = inference_seem_interactive(model, image['image'], spatial_masks, text_size, label_mode, alpha, anno_mode)
 
         # convert output to PIL image
-        output_img = Image.fromarray(output)
-        output_img.save('temp.jpg')
-        return output
+        history_masks.append(mask)
+        history_images.append(Image.fromarray(output))
+        return (output, [])
 
 
 def gpt4v_response(message, history):
+    global history_images
+    global history_texts; history_texts = []    
     try:
-        res = request_gpt4v(message)
-        # save res to txt
-        with open('temp.txt', 'w') as f:
-            f.write(res)
+        res = request_gpt4v(message, history_images[0])
+        history_texts.append(res)
         return res
     except Exception as e:
         return None
 
 def highlight(mode, alpha, label_mode, anno_mode, *args, **kwargs):
-    # read temp.txt
-    with open('temp.txt', 'r') as f:
-        res = f.read()   
-    # read temp_mask.jpg
-    mask = Image.open('temp_mask.jpg')
-    # convert mask to gray scale
-    mask = mask.convert('L')
+    res = history_texts[0]
     # find the seperate numbers in sentence res
     res = res.split(' ')
     res = [r.replace('.','').replace(',','').replace(')','').replace('"','') for r in res]
+    # find all numbers in '[]'
+    res = [r for r in res if '[' in r]
+    res = [r.split('[')[1] for r in res]
+    res = [r.split(']')[0] for r in res]
     res = [r for r in res if r.isdigit()]
-    # convert res to unique
     res = list(set(res))
-    # draw mask
-    # resize image['image'] into mask size
-    # read temp.jpg
-    image = Image.open('temp.jpg')
-    image_out = image.resize(mask.size)
-    visual = Visualizer(image_out, metadata=metadata)
+    sections = []
     for i, r in enumerate(res):
-        mask_i = np.copy(np.asarray(mask))
-        mask_i[mask_i != int(r)] = False
-        mask_i[mask_i == int(r)] = True
-        demo = visual.draw_binary_mask_with_number(mask_i, text='', label_mode=label_mode, alpha=0.6, anno_mode=["Mark", "Mask"])
-        del mask_i
-    if len(res) > 0:
-        im = demo.get_image()
-        return im
-    return image_out
+        mask_i = history_masks[0][int(r)-1]['segmentation']
+        sections.append((mask_i, r))
+    return (history_images[0], sections)
 
 class ImageMask(gr.components.Image):
     """
@@ -205,7 +196,7 @@ image = ImageMask(label="Input", type="pil", brush_radius=20.0, brush_color="#FF
 slider = gr.Slider(1, 3, value=1.8, label="Granularity") # info="Choose in [1, 1.5), [1.5, 2.5), [2.5, 3] for [seem, semantic-sam (multi-level), sam]"
 mode = gr.Radio(['Automatic', 'Interactive', ], value='Automatic', label="Segmentation Mode")
 anno_mode = gr.CheckboxGroup(choices=["Mark", "Mask", "Box"], value=['Mark'], label="Annotation Mode")
-image_out = gr.Image(label="SoM Visual Prompt",type="pil", height=512)
+image_out = gr.AnnotatedImage(label="SoM Visual Prompt",type="pil", height=512)
 runBtn = gr.Button("Run")
 highlightBtn = gr.Button("Highlight")
 bot = gr.Chatbot(label="GPT-4V + SoM", height=256)

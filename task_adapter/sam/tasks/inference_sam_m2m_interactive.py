@@ -169,17 +169,13 @@ def inference_sam_m2m_interactive(model, image, spatial_masks, text_size, label_
         # assign the mask to the mask_map
         mask_map[mask == 1] = label
         label += 1
-    im = demo.get_image()
-    # save the mask_map
-    mask_map = Image.fromarray(mask_map)
-    mask_map.save('temp_mask.jpg')
-    
+    im = demo.get_image()    
     # fig=plt.figure(figsize=(10, 10))
     # plt.imshow(image_ori)
     # show_anns(outputs)
     # fig.canvas.draw()
     # im=Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
-    return im
+    return im, sorted_anns
 
 
 def remove_small_regions(
