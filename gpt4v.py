@@ -10,7 +10,7 @@ headers = {
 }
 
 metaprompt = '''
-- You always generate the answer in markdown formatl. For any marks mentioned in your answer, please highlight them in a red color and bold font.
+- You always generate the answer in markdown format. For any marks mentioned in your answer, please highlight them in a red color and bold font.
 '''    
 
 # Function to encode the image
