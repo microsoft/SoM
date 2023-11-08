@@ -24,10 +24,6 @@ python demo_gpt4v_som.py
 
 * [10/23] We released the SoM toolbox code for generating set-of-mark prompts for GPT-4V. Try it out!
 
-### 🗒️ Todos
-
-- [ ] Release vision benchmarks used in our paper
-
 ### 🔗 Related links
 
 Fascinating applications of SoM and LMMs:
