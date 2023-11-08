@@ -31,6 +31,11 @@ from segment_anything import sam_model_registry
 from task_adapter.sam.tasks.inference_sam_m2m_auto import inference_sam_m2m_auto
 from task_adapter.sam.tasks.inference_sam_m2m_interactive import inference_sam_m2m_interactive
 
+
+from task_adapter.utils.visualizer import Visualizer
+from detectron2.data import MetadataCatalog
+metadata = MetadataCatalog.get('coco_2017_train_panoptic')
+
 from scipy.ndimage import label
 import numpy as np
 
@@ -38,6 +43,10 @@ from gpt4v import request_gpt4v
 from openai import OpenAI
 from pydub import AudioSegment
 from pydub.playback import play
+
+import matplotlib.colors as mcolors
+css4_colors = mcolors.CSS4_COLORS
+color_proposals = [list(mcolors.hex2color(color)) for color in css4_colors.values()]
 
 client = OpenAI()
 
@@ -69,7 +78,6 @@ with torch.no_grad():
 
 @torch.no_grad()
 def inference(image, slider, mode, alpha, label_mode, anno_mode, *args, **kwargs):
-
     if slider < 1.5:
         model_name = 'seem'
     elif slider > 2.5:
@@ -136,9 +144,43 @@ def inference(image, slider, mode, alpha, label_mode, anno_mode, *args, **kwargs
 def gpt4v_response(message, history):
     try:
         res = request_gpt4v(message)
+        # save res to txt
+        with open('temp.txt', 'w') as f:
+            f.write(res)
         return res
     except Exception as e:
         return None
+
+def highlight(mode, alpha, label_mode, anno_mode, *args, **kwargs):
+    # read temp.txt
+    with open('temp.txt', 'r') as f:
+        res = f.read()   
+    # read temp_mask.jpg
+    mask = Image.open('temp_mask.jpg')
+    # convert mask to gray scale
+    mask = mask.convert('L')
+    # find the seperate numbers in sentence res
+    res = res.split(' ')
+    res = [r.replace('.','').replace(',','').replace(')','').replace('"','') for r in res]
+    res = [r for r in res if r.isdigit()]
+    # convert res to unique
+    res = list(set(res))
+    # draw mask
+    # resize image['image'] into mask size
+    # read temp.jpg
+    image = Image.open('temp.jpg')
+    image_out = image.resize(mask.size)
+    visual = Visualizer(image_out, metadata=metadata)
+    for i, r in enumerate(res):
+        mask_i = np.copy(np.asarray(mask))
+        mask_i[mask_i != int(r)] = False
+        mask_i[mask_i == int(r)] = True
+        demo = visual.draw_binary_mask_with_number(mask_i, text='', label_mode=label_mode, alpha=0.6, anno_mode=["Mark", "Mask"])
+        del mask_i
+    if len(res) > 0:
+        im = demo.get_image()
+        return im
+    return image_out
 
 class ImageMask(gr.components.Image):
     """
@@ -158,17 +200,19 @@ launch app
 '''
 
 demo = gr.Blocks()
-image = ImageMask(label="Input", type="pil", brush_radius=20.0, brush_color="#FFFFFF")
-slider = gr.Slider(1, 3, value=2, label="Granularity", info="Choose in [1, 1.5), [1.5, 2.5), [2.5, 3] for [seem, semantic-sam (multi-level), sam]")
+image = ImageMask(label="Input", type="pil", brush_radius=20.0, brush_color="#FFFFFF", height=512)
+# image = gr.Image(label="Input", type="pil", height=512)
+slider = gr.Slider(1, 3, value=1.8, label="Granularity") # info="Choose in [1, 1.5), [1.5, 2.5), [2.5, 3] for [seem, semantic-sam (multi-level), sam]"
 mode = gr.Radio(['Automatic', 'Interactive', ], value='Automatic', label="Segmentation Mode")
-image_out = gr.Image(label="SoM Visual Prompt",type="pil")
+anno_mode = gr.CheckboxGroup(choices=["Mark", "Mask", "Box"], value=['Mark'], label="Annotation Mode")
+image_out = gr.Image(label="SoM Visual Prompt",type="pil", height=512)
 runBtn = gr.Button("Run")
+highlightBtn = gr.Button("Highlight")
 bot = gr.Chatbot(label="GPT-4V + SoM", height=256)
-slider_alpha = gr.Slider(0, 1, value=0.05, label="Mask Alpha", info="Choose in [0, 1]")
+slider_alpha = gr.Slider(0, 1, value=0.05, label="Mask Alpha") #info="Choose in [0, 1]"
 label_mode = gr.Radio(['Number', 'Alphabet'], value='Number', label="Mark Mode")
-anno_mode = gr.CheckboxGroup(choices=["Mask", "Box", "Mark"], value=['Mask', 'Mark'], label="Annotation Mode")
 
-title = "Set-of-Mark (SoM) Prompting Unleashes Extraordinary Visual Grounding in GPT-4V"
+title = "Set-of-Mark (SoM) Visual Prompting for Extraordinary Visual Grounding in GPT-4V"
 description = "This is a demo for SoM Prompting to unleash extraordinary visual grounding in GPT-4V. Please upload an image and them click the 'Run' button to get the image with marks. Then chat with GPT-4V below!"
 
 with demo:
@@ -178,19 +222,23 @@ with demo:
         with gr.Column():
             image.render()
             slider.render()
-            with gr.Row():
-                mode.render()
-                anno_mode.render()
-            with gr.Row():
-                slider_alpha.render()
-                label_mode.render()
+            with gr.Accordion("Detailed prompt settings (e.g., mark type)", open=False):
+                with gr.Row():
+                    mode.render()
+                    anno_mode.render()
+                with gr.Row():
+                    slider_alpha.render()
+                    label_mode.render()
         with gr.Column():
             image_out.render()
             runBtn.render()
+            highlightBtn.render()
     with gr.Row():    
         gr.ChatInterface(chatbot=bot, fn=gpt4v_response)
 
     runBtn.click(inference, inputs=[image, slider, mode, slider_alpha, label_mode, anno_mode],
+              outputs = image_out)
+    highlightBtn.click(highlight, inputs=[image, mode, slider_alpha, label_mode, anno_mode],
               outputs = image_out)
 
 demo.queue().launch(share=True,server_port=6092)

@@ -29,12 +29,12 @@ def prepare_inputs(message):
     payload = {
         "model": "gpt-4-vision-preview",
         "messages": [
-        {
-            "role": "system",
-            "content": [
-                metaprompt
-            ]
-        }, 
+        # {
+        #     "role": "system",
+        #     "content": [
+        #         metaprompt
+        #     ]
+        # }, 
         {
             "role": "user",
             "content": [
