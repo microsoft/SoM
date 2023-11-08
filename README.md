@@ -1,4 +1,4 @@
-# Set-of-Mark Prompting or GPT-4V - Visual Prompting for Vision!
+# <img src="assets/som_logo.png" alt="Logo" width="40" height="40" align="left">   Set-of-Mark Prompting or GPT-4V - Visual Prompting for Vision!
 
 :grapes: \[[Read our arXiv Paper](https://arxiv.org/pdf/2310.11441.pdf)\] &nbsp; :apple: \[[Project Page](https://som-gpt4v.github.io/)\] 
 
