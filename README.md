@@ -1,4 +1,4 @@
-# <img src="assets/som_logo.png" alt="Logo" width="40" height="40" align="left">   Set-of-Mark Prompting or GPT-4V - Visual Prompting for Vision!
+# <img src="assets/som_logo.png" alt="Logo" width="40" height="40" align="left"> Set-of-Mark Prompting or GPT-4V
 
 :grapes: \[[Read our arXiv Paper](https://arxiv.org/pdf/2310.11441.pdf)\] &nbsp; :apple: \[[Project Page](https://som-gpt4v.github.io/)\] 
 
@@ -6,7 +6,9 @@
 
 \* Core Contributors &nbsp;&nbsp;&nbsp;&nbsp; ⚑ Project Lead
 
-We present **S**et-**o**f-**M**ark (SoM) prompting, simply overlaying a number of spatial and speakable marks on the images, to unleash the visual grounding abilities in the strongest LMM. GPT-4V.
+### Introduction
+
+We present **S**et-**o**f-**M**ark (SoM) prompting, simply overlaying a number of spatial and speakable marks on the images, to unleash the visual grounding abilities in the strongest LMM -- GPT-4V. **Let's using visual prompting for vision**!
 
 ![method2_xyz](https://github.com/microsoft/SoM/assets/34880758/32a269c4-8465-4eaf-aa90-48e9534649d9)
 
