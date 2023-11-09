@@ -103,21 +103,21 @@ def inference(image, slider, mode, alpha, label_mode, anno_mode, *args, **kwargs
 
         if model_name == 'semantic-sam':
             model = model_semsam
-            output = inference_semsam_m2m_auto(model, image['image'], level, text, text_part, text_thresh, text_size, hole_scale, island_scale, semantic, label_mode=label_mode, alpha=alpha, anno_mode=anno_mode, *args, **kwargs)
+            output, mask = inference_semsam_m2m_auto(model, image['image'], level, text, text_part, text_thresh, text_size, hole_scale, island_scale, semantic, label_mode=label_mode, alpha=alpha, anno_mode=anno_mode, *args, **kwargs)
 
         elif model_name == 'sam':
             model = model_sam
             if mode == "Automatic":
-                output = inference_sam_m2m_auto(model, image['image'], text_size, label_mode, alpha, anno_mode)
+                output, mask = inference_sam_m2m_auto(model, image['image'], text_size, label_mode, alpha, anno_mode)
             elif mode == "Interactive":
-                output = inference_sam_m2m_interactive(model, image['image'], spatial_masks, text_size, label_mode, alpha, anno_mode)
+                output, mask = inference_sam_m2m_interactive(model, image['image'], spatial_masks, text_size, label_mode, alpha, anno_mode)
 
         elif model_name == 'seem':
             model = model_seem
             if mode == "Automatic":
-                output = inference_seem_pano(model, image['image'], text_size, label_mode, alpha, anno_mode)
+                output, mask = inference_seem_pano(model, image['image'], text_size, label_mode, alpha, anno_mode)
             elif mode == "Interactive":
-                output = inference_seem_interactive(model, image['image'], spatial_masks, text_size, label_mode, alpha, anno_mode)
+                output, mask = inference_seem_interactive(model, image['image'], spatial_masks, text_size, label_mode, alpha, anno_mode)
 
         return output
 
