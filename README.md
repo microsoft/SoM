@@ -22,7 +22,7 @@ We present **S**et-**o**f-**M**ark (SoM) prompting, simply overlaying a number o
 export OPENAI_API_KEY=YOUR_API_KEY
 python demo_gpt4v_som.py
 ```
-![som_toolbox](examples/gpt-4v-som-example.jpg)
+https://github.com/microsoft/SoM/releases/download/v1.0.1/som_gpt4v_demo.mp4
 
 * [10/23] We released the SoM toolbox code for generating set-of-mark prompts for GPT-4V. Try it out!
 
@@ -60,7 +60,6 @@ cd ops && sh make.sh && cd ..
 
 # common error fix:
 python -m pip install 'git+https://github.com/MaureenZOU/detectron2-xyz.git'
-pip install mpi4py
 ```
 
 * Download the pretrained models
