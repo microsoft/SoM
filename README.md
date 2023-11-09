@@ -12,19 +12,20 @@ We present **S**et-**o**f-**M**ark (SoM) prompting, simply overlaying a number o
 
 ![method2_xyz](https://github.com/microsoft/SoM/assets/34880758/32a269c4-8465-4eaf-aa90-48e9534649d9)
 
+
+### GPT-4V + SoM Demo
+
+https://github.com/microsoft/SoM/assets/3894247/8f827871-7ebd-4a5e-bef5-861516c4427b
+
 ### 🔥 News
 
 * [11/07] We released the vision benchmark we used to evaluate GPT-4V with SoM prompting! Check out the [benchmark page](https://github.com/microsoft/SoM/tree/main/benchmark)!
-![som_bench](assets/som_bench_upper.jpg)
 
 * [11/07] Now that GPT-4V API has been released, we are releasing a demo integrating SoM into GPT-4V! 
 ```bash
 export OPENAI_API_KEY=YOUR_API_KEY
 python demo_gpt4v_som.py
 ```
-
-https://github.com/microsoft/SoM/assets/3894247/8f827871-7ebd-4a5e-bef5-861516c4427b
-
 
 * [10/23] We released the SoM toolbox code for generating set-of-mark prompts for GPT-4V. Try it out!
 
