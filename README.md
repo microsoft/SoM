@@ -29,12 +29,15 @@ python demo_gpt4v_som.py
 
 * [10/23] We released the SoM toolbox code for generating set-of-mark prompts for GPT-4V. Try it out!
 
-### 🔗 Related links
+### 🔗 Fascinating Applications
 
-Fascinating applications of SoM and LMMs:
+Fascinating applications of SoM in GPT-4V:
+* [11/13/2023] [Smartphone GUI Navigation boosted by Set-of-Mark Prompting](https://github.com/zzxslp/MM-Navigator)
+* [11/05/2023] [Zero-shot Anomaly Detection with GPT-4V and SoM prompting](https://github.com/zhangzjn/GPT-4V-AD)
+* [10/21/2023] [Web UI Navigation Agent inspired by Set-of-Mark Prompting](https://github.com/ddupont808/GPT-4V-Act)
+* [10/20/2023] [Set-of-Mark Prompting Reimplementation by @SkalskiP from Roboflow](https://github.com/SkalskiP/SoM.git)
 
-* [Set-of-Mark Prompting by Roboflow](https://github.com/SkalskiP/SoM.git): Reimplementation of SoM by @SkalskiP from Roboflow
-* [Set-of-Mark Prompting for UI Navigation Agent](https://github.com/ddupont808/GPT-4V-Act): A really brilliant work using GPT-4V and SoM as a web copilot!
+### 🔗 Related Works
 
 Our method compiles the following models to generate the set of marks:
 
