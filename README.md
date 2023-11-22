@@ -19,6 +19,7 @@ https://github.com/microsoft/SoM/assets/3894247/8f827871-7ebd-4a5e-bef5-861516c4
 
 ### 🔥 News
 
+* [11/21] Thanks to Roboflow and @SkalskiP, a [huggingface demo](https://huggingface.co/spaces/Roboflow/SoM) for SoM + GPT-4V is online! Try it out!
 * [11/07] We released the vision benchmark we used to evaluate GPT-4V with SoM prompting! Check out the [benchmark page](https://github.com/microsoft/SoM/tree/main/benchmark)!
 
 * [11/07] Now that GPT-4V API has been released, we are releasing a demo integrating SoM into GPT-4V! 
