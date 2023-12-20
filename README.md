@@ -2,7 +2,7 @@
 
 :grapes: \[[Read our arXiv Paper](https://arxiv.org/pdf/2310.11441.pdf)\] &nbsp; :apple: \[[Project Page](https://som-gpt4v.github.io/)\] 
 
-[Jianwei Yang](https://jwyang.github.io/)\*⚑, [Hao Zhang](https://scholar.google.com/citations?user=B8hPxMQAAAAJ&hl=en)\*, [Feng Li](https://fengli-ust.github.io/)\*, [Xueyan Zou](https://maureenzou.github.io/)\*, [Chunyuan Li](https://chunyuan.li/), [Jianfeng Gao](https://www.microsoft.com/en-us/research/people/jfgao/)
+[Jianwei Yang](https://jwyang.github.io/)\*⚑, [Hao Zhang](https://haozhang534.github.io/)\*, [Feng Li](https://fengli-ust.github.io/)\*, [Xueyan Zou](https://maureenzou.github.io/)\*, [Chunyuan Li](https://chunyuan.li/), [Jianfeng Gao](https://www.microsoft.com/en-us/research/people/jfgao/)
 
 \* Core Contributors &nbsp;&nbsp;&nbsp;&nbsp; ⚑ Project Lead
 
