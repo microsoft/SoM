@@ -19,6 +19,8 @@ COPY . .
 # Install any needed packages specified in requirements.txt
 #RUN pip install --no-cache-dir -r requirements.txt
 
+ENV FORCE_CUDA=1
+
 # Install additional dependencies from the README
 RUN pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once.git@package \
     && pip install git+https://github.com/facebookresearch/segment-anything.git \
