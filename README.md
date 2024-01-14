@@ -5,6 +5,8 @@
 3. `pip install client_requirements.txt`
 4. `python deploy.py create_ecs_cluster my-som-cluster`
 5. `python deploy.py create_workflow my-som-app`
+6. `git remote set-url origin https://<username>:<personal_access_token>@github.com/<owner>/<repo>.git`
+6. `python deploy.py set_github_secrets`
 6. `git add .github/workflows/docker-build.yml && git commit && git push`
 
 # <img src="assets/som_logo.png" alt="Logo" width="40" height="40" align="left"> Set-of-Mark Visual Prompting for GPT-4V

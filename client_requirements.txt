@@ -2,4 +2,6 @@ boto3
 fire
 jinja2
 loguru
+pynacl
 python-dotenv
+requests

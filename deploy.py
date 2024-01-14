@@ -1,6 +1,8 @@
+from pprint import pformat
 import subprocess
 import json
 import os
+import re
 
 from dotenv import load_dotenv
 from loguru import logger
@@ -120,8 +122,11 @@ def create_workflow(ecr_repository):
     env = Environment(loader=FileSystemLoader('.'))
     template = env.get_template('docker-build.yml.j2')
 
+    aws_region = os.getenv('AWS_REGION')
+
     # Render the template
     rendered_template = template.render(
+        AWS_REGION=aws_region,
         BRANCH=current_branch,
         ECR_REGISTRY=ecr_registry,
         ECR_REPOSITORY=ecr_repository,
@@ -133,6 +138,55 @@ def create_workflow(ecr_repository):
     # Write the rendered template to a file
     with open('.github/workflows/docker-build.yml', 'w') as file:
         file.write(rendered_template)
+
+import requests
+import base64
+from nacl import encoding, public
+
+def encrypt(public_key: str, secret_value: str) -> str:
+    """Encrypt a Unicode string using the public key."""
+    public_key = public.PublicKey(public_key.encode("utf-8"), encoding.Base64Encoder())
+    sealed_box = public.SealedBox(public_key)
+    encrypted = sealed_box.encrypt(secret_value.encode("utf-8"))
+    return base64.b64encode(encrypted).decode("utf-8")
+
+def set_github_secret(token: str, repo: str, secret_name: str, secret_value: str):
+    """Set a secret in the GitHub repository."""
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    response = requests.get(f"https://api.github.com/repos/{repo}/actions/secrets/public-key", headers=headers)
+    response.raise_for_status()
+    key = response.json()['key']
+    key_id = response.json()['key_id']
+    encrypted_value = encrypt(key, secret_value)
+    secret_url = f"https://api.github.com/repos/{repo}/actions/secrets/{secret_name}"
+    data = {"encrypted_value": encrypted_value, "key_id": key_id}
+    response = requests.put(secret_url, headers=headers, json=data)
+    response.raise_for_status()
+
+def get_git_remote_info():
+    """Extract the username, PAT, and repository name from the git remote URL."""
+    result = subprocess.run(["git", "remote", "-v"], capture_output=True, text=True)
+    remote_info = result.stdout
+    match = re.search(r'https://(.+):(.+)@github.com/(.+/.+)\.git', remote_info)
+    if match:
+        return match.group(1), match.group(2), match.group(3)
+    else:
+        raise ValueError("No valid GitHub remote URL found.")
+
+def set_github_secrets():
+    """Set AWS credentials as GitHub Secrets based on the git remote info."""
+    aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
+    aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+    assert aws_access_key_id, f"{aws_access_key_id=}"
+    assert aws_secret_access_key, f"{aws_secret_access_key=}"
+    username, pat, repository = get_git_remote_info()
+    logger.info(f"{username=}")
+    logger.info(f"{repository=}")
+    set_github_secret(pat, repository, 'AWS_ACCESS_KEY_ID', aws_access_key_id)
+    set_github_secret(pat, repository, 'AWS_SECRET_ACCESS_KEY', aws_secret_access_key)
 
 
 if __name__ == "__main__":
