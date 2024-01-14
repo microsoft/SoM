@@ -319,6 +319,15 @@ def create_codebuild_project(project_name=PROJECT_NAME, docker_buildspec="builds
         buildspec_content = file.read()
 
     try:
+        # Try to delete the project if it exists
+        codebuild.delete_project(name=project_name)
+        logger.info(f"Existing CodeBuild project '{project_name}' deleted.")
+    except codebuild.exceptions.ResourceNotFoundException:
+        # If the project does not exist, just proceed
+        logger.info(f"CodeBuild project '{project_name}' does not exist. Proceeding to create a new one.")
+
+    try:
+        # Create a new CodeBuild project
         response = codebuild.create_project(
             name=project_name,
             source={
@@ -330,15 +339,16 @@ def create_codebuild_project(project_name=PROJECT_NAME, docker_buildspec="builds
             environment={
                 "type": "LINUX_CONTAINER",
                 "image": "aws/codebuild/standard:5.0",  # Use an image that supports CUDA
-                "computeType": "BUILD_GENERAL1_LARGE",  # Adjust as necessary
+                "computeType": "BUILD_GENERAL1_LARGE",
                 "environmentVariables": [{"name": "DOCKER_BUILDKIT", "value": "1"}]
             },
             serviceRole=service_role_arn,
             tags=[{"key": "Name", "value": PROJECT_NAME}],
         )
-        logger.info(f"CodeBuild project created: {response}")
+        logger.info(f"New CodeBuild project '{project_name}' created: {response}")
     except Exception as e:
-        logger.error(f"Error creating CodeBuild project: {e}")
+        logger.error(f"Error creating CodeBuild project '{project_name}': {e}")
+
 
 from jinja2 import Environment, FileSystemLoader
 import os
