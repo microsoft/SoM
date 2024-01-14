@@ -1,0 +1,5 @@
+boto3
+fire
+jinja2
+loguru
+python-dotenv
