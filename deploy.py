@@ -265,7 +265,7 @@ def get_repo_details(remote_name="origin"):
     repo_name = repo_name.replace('.git', '')  # Remove .git from repo name
     return owner, repo_name
 
-def create_iam_role(role_name):
+def create_iam_role(role_name=f"{PROJECT_NAME}-CodeBuildServiceRole"):
     iam = boto3.client('iam')
     assume_role_policy = {
         "Version": "2012-10-17",
@@ -278,28 +278,39 @@ def create_iam_role(role_name):
         ]
     }
 
+    policy_arns = [
+        "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess",
+        "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+    ]
+
+    # Create or retrieve the role
     try:
         role = iam.create_role(
             RoleName=role_name,
             AssumeRolePolicyDocument=json.dumps(assume_role_policy),
-            Tags=[{'Key': 'Name', 'Value': PROJECT_NAME}],
+            Tags=[{'Key': 'Name', 'Value': PROJECT_NAME}]
         )
-        # Add necessary permissions to the role
-        # For example, attaching a managed policy
-        iam.attach_role_policy(
-            RoleName=role_name,
-            PolicyArn="arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
-        )
+        role_arn = role['Role']['Arn']
         logger.info("IAM role created")
-        return role['Role']['Arn']
     except iam.exceptions.EntityAlreadyExistsException:
         logger.info("IAM role already exists")
-        return iam.get_role(RoleName=role_name)['Role']['Arn']
+        role = iam.get_role(RoleName=role_name)
+        role_arn = role['Role']['Arn']
+
+    # Attach necessary policies to the role
+    for policy_arn in policy_arns:
+        iam.attach_role_policy(
+            RoleName=role_name,
+            PolicyArn=policy_arn
+        )
+        logger.info(f"Attached policy {policy_arn} to role {role_name}")
+
+    return role_arn
 
 
 def create_codebuild_project(project_name=PROJECT_NAME, docker_buildspec="buildspec.yml"):
     owner, repo_name = get_repo_details()
-    service_role_arn = create_iam_role(f"{PROJECT_NAME}-CodeBuildServiceRole")
+    service_role_arn = create_iam_role()
 
     codebuild = boto3.client('codebuild')
 
