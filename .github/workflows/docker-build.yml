@@ -24,11 +24,9 @@ jobs:
       - name: Start AWS CodeBuild
         id: start_build
         run: |
-          
-          output=$(aws codebuild start-build --project-name {{ codebuild_project_name }})
+          output=$(aws codebuild start-build --project-name guiai)
           build_id=$(echo $output | jq -r '.build.id')
           echo "::set-output name=build_id::$build_id"
-          
 
       - name: Check AWS CodeBuild status
         run: |
