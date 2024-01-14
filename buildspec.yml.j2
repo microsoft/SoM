@@ -1,11 +1,11 @@
-# buildspec.yml.j2
 version: 0.2
 
 phases:
   pre_build:
     commands:
       - echo Logging in to Amazon ECR...
-      - $(aws ecr get-login-password --region {{ aws_region }}) | docker login --username AWS --password-stdin {{ ecr_repository_uri }}
+      - LOGIN_PASSWORD=$(aws ecr get-login-password --region {{ aws_region }})
+      - echo $LOGIN_PASSWORD | docker login --username AWS --password-stdin {{ ecr_repository_uri }}
   build:
     commands:
       - echo Build started on `date`

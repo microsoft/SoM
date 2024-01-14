@@ -1,4 +1,3 @@
-# docker-build.yml.j2
 name: Docker Build with AWS CodeBuild
 
 on:
@@ -19,9 +18,34 @@ jobs:
           
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: {{ aws_region }}
           
-          aws-region: us-east-1
 
       - name: Start AWS CodeBuild
+        id: start_build
         run: |
-          aws codebuild start-build --project-name guiai
+          
+          output=$(aws codebuild start-build --project-name {{ codebuild_project_name }})
+          build_id=$(echo $output | jq -r '.build.id')
+          echo "::set-output name=build_id::$build_id"
+          
+
+      - name: Check AWS CodeBuild status
+        run: |
+          
+          build_id="${{ steps.start_build.outputs.build_id }}"
+          status="IN_PROGRESS"
+          while [ "$status" == "IN_PROGRESS" ]; do
+                  output=$(aws codebuild batch-get-builds --ids $build_id)
+                  status=$(echo $output | jq -r '.builds[0].buildStatus')
+                  echo "Current build status: $status"
+                  if [ "$status" == "SUCCEEDED" ]; then
+                          echo "Build succeeded."
+                          break
+                  elif [ "$status" == "FAILED" ]; then
+                          echo "Build failed."
+                          exit 1
+                  fi
+                  sleep 30
+          done
+          
