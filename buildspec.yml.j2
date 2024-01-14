@@ -1,0 +1,18 @@
+# buildspec.yml.j2
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - $(aws ecr get-login-password --region {{ aws_region }}) | docker login --username AWS --password-stdin {{ ecr_repository_uri }}
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t {{ ecr_repository_uri }}/{{ image_name }}:latest .
+  post_build:
+    commands:
+      - echo Pushing the Docker image...
+      - docker push {{ ecr_repository_uri }}/{{ image_name }}:latest
+      - echo Build completed on `date`

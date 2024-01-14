@@ -1,5 +1,6 @@
 boto3
 fire
+gitpython
 jinja2
 loguru
 pynacl
