@@ -4,6 +4,9 @@ phases:
   pre_build:
     commands:
       - echo Starting the build process...
+      - git fetch --all
+      - git checkout {{ branch_name }}
+      - git reset --hard origin/{{ branch_name }}
   build:
     commands:
       - echo Build started on `date`

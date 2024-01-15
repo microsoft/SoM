@@ -365,6 +365,7 @@ def generate_buildspec(image_name=f"{PROJECT_NAME}-app", ecr_repository_uri=None
     # Render the template
     rendered_buildspec = template.render(
 		aws_region=_get_var("AWS_REGION"),
+        branch_name=get_current_git_branch(),
         ecr_repository_uri=ecr_repository_uri, 
         image_name=image_name
     )
