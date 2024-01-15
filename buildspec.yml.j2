@@ -3,15 +3,17 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo "Starting the build process..."
-      - echo "Fetching..."
+      - echo Starting the build process...
+      - echo Current working directory:
+      - pwd
+      - ls -la
       - git fetch --all
-      - echo "Checking out {{ branch_name }}..."
       - git checkout {{ branch_name }}
       - echo "Commit ID:"
       - git rev-parse HEAD
-      - echo "Resetting..."
       - git reset --hard origin/{{ branch_name }}
+      - echo "Post-checkout file listing:"
+      - ls -la
   build:
     commands:
       - echo Build started on `date`
