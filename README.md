@@ -1,15 +1,3 @@
-# Deploy to ECS
-
-1. `cp .env.example` `.env`
-2. Fill in `.env`
-3. `pip install client_requirements.txt`
-4. `python deploy.py create_ecs_cluster my-som-cluster`
-5. `python deploy.py create_workflow my-som-app`
-6. `git remote set-url origin https://<username>:<personal_access_token>@github.com/<owner>/<repo>.git`
-6. `python deploy.py set_github_secrets`
-7. `python deploy.py create_codebuild_project`
-8. `git add .github/workflows/docker-build.yml && git commit && git push`
-
 # <img src="assets/som_logo.png" alt="Logo" width="40" height="40" align="left"> Set-of-Mark Visual Prompting for GPT-4V
 
 :grapes: \[[Read our arXiv Paper](https://arxiv.org/pdf/2310.11441.pdf)\] &nbsp; :apple: \[[Project Page](https://som-gpt4v.github.io/)\] 
@@ -170,3 +158,7 @@ If you find our work helpful for your research, please consider citing the follo
       journal={arXiv preprint arXiv:2310.11441},
       year={2023},
 }
+
+## Deploy to AWS
+
+See `deploy.py`.

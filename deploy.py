@@ -1,34 +1,64 @@
+"""Deploy SoM to AWS.
+
+Example Usage:
+    1. `cp .env.example` `.env`
+    2. Fill in `.env`
+    3. `pip install client_requirements.txt`
+    4. `python deploy.py configure
+    5. `git add .github/workflows/docker-build.yml && git commit && git push`
+
+"""
+
+from datetime import datetime, timedelta
 from pprint import pformat
-import subprocess
+import base64
 import json
 import os
 import re
+import subprocess
+import time
 
 from dotenv import load_dotenv
+from jinja2 import Environment, FileSystemLoader
 from loguru import logger
+from nacl import encoding, public
+import boto3
 import fire
+import git
+import requests
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv(".env")
 
+# TODO: pydantic?
+class Config:
 
-def _get_var(name):
-    val = os.getenv(name)
-    assert val is not None, f"{name=} {val=}"
-    return val
+    def _get_env(name):
+        val = os.getenv(name)
+        assert val is not None, f"{name=} {val=}"
+        return val
 
+    AWS_ACCESS_KEY_ID = _get_env("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = _get_env("AWS_SECRET_ACCESS_KEY")
+    AWS_REGION = _get_env("AWS_REGION")
+    GITHUB_REPO = _get_env("GITHUB_REPO")
+    GITHUB_TOKEN = _get_env("GITHUB_TOKEN")
+    PROJECT_NAME = _get_env("PROJECT_NAME")
+
+    AWS_EC2_AMI = "ami-0a8dada81f29ad054"
+    # "p3.2xlarge" (V100 16GB $3.06/hr x86_64)
+    # "g5g.xlarge" (T4G 16GB $0.42/hr ARM64)
+    AWS_EC2_INSTANCE_TYPE = "p3.2xlarge"
+    AWS_EC2_KEY_NAME = f"{PROJECT_NAME}-key"
 
 def _run_subprocess(command, log_stdout=False):
     try:
         # Prepend AWS credentials for AWS CLI commands
         if command[0].startswith('aws'):
-            aws_access_key_id = _get_var('AWS_ACCESS_KEY_ID')
-            aws_secret_access_key = _get_var('AWS_SECRET_ACCESS_KEY')
-            aws_region = _get_var('AWS_REGION')
             env = os.environ.copy()
-            env['AWS_ACCESS_KEY_ID'] = aws_access_key_id
-            env['AWS_SECRET_ACCESS_KEY'] = aws_secret_access_key
-            env['AWS_REGION'] = aws_region
+            env['AWS_ACCESS_KEY_ID'] = Config.AWS_ACCESS_KEY_ID
+            env['AWS_SECRET_ACCESS_KEY'] = Config.AWS_SECRET_ACCESS_KEY
+            env['AWS_REGION'] = Config.AWS_REGION
             logger.info(f"Running AWS command with Access Key ID: {aws_access_key_id}")
         else:
             env = None
@@ -44,8 +74,7 @@ def _run_subprocess(command, log_stdout=False):
         logger.error(f"Command failed: {e.stderr}")
         return None
 
-
-def create_ecs_cluster(cluster_name):
+def create_ecs_cluster(cluster_name=f"{Config.PROJECT_NAME}-Cluster"):
     command = ["aws", "ecs", "create-cluster", "--cluster-name", cluster_name]
     result = _run_subprocess(command, log_stdout=True)
     if result:
@@ -53,64 +82,16 @@ def create_ecs_cluster(cluster_name):
         logger.info(f"Cluster created successfully: {json.dumps(output, indent=2)}")
 
 
-# local build
-"""
-def build_docker_image(image_name, tag):
-    full_image_name = f"{image_name}:{tag}"
-    command = ["docker", "build", "-t", full_image_name, "."]
-    result = _run_subprocess(command)
-    if result:
-        logger.info(f"Docker image {full_image_name} built successfully.")
-
-
-def authenticate_ecr(region):
-    get_login_command = ["aws", "ecr", "get-login-password", "--region", region]
-    login_password_result = _run_subprocess(get_login_command, log_stdout=True)
-
-    if login_password_result:
-        login_password = login_password_result.stdout.strip()
-        login_command = ["docker", "login", "--username", "AWS", "--password", login_password]
-        login_result = _run_subprocess(login_command)
-        if login_result:
-            logger.info("Authenticated with ECR successfully.")
-
-
-def create_ecr_repository(repo_name):
+def create_ecr_repository(repo_name=f"{Config.PROJECT_NAME}-Repo"):
     command = ["aws", "ecr", "create-repository", "--repository-name", repo_name]
     result = _run_subprocess(command)
     if result:
         logger.info(f"ECR repository {repo_name} created successfully.")
 
-
-def push_docker_image(repo_uri, image_name, tag):
-    full_image_name = f"{image_name}:{tag}"
-    remote_image_name = f"{repo_uri}:{tag}"
-
-    # Tagging the image
-    tag_command = ["docker", "tag", full_image_name, remote_image_name]
-    tag_result = run_subprocess(tag_command)
-    if tag_result:
-        # Pushing the image
-        push_command = ["docker", "push", remote_image_name]
-        push_result = _run_subprocess(push_command)
-        if push_result:
-            logger.info(f"Docker image {remote_image_name} pushed to ECR successfully.")
-"""
-
-import os
-import boto3
-from jinja2 import Environment, FileSystemLoader
-
 def get_ecr_registry_url():
-    region = os.getenv("AWS_REGION")
-    assert region, f"Environment variable 'AWS_REGION' is not set. Current value: {region}"
-    sts_client = boto3.client('sts', region_name=region)
+    sts_client = boto3.client('sts', region_name=config.AWS_REGION)
     account_id = sts_client.get_caller_identity()["Account"]
     return f"{account_id}.dkr.ecr.{region}.amazonaws.com"
-
-import requests
-import base64
-from nacl import encoding, public
 
 def encrypt(public_key: str, secret_value: str) -> str:
     """Encrypt a Unicode string using the public key."""
@@ -135,35 +116,35 @@ def set_github_secret(token: str, repo: str, secret_name: str, secret_value: str
     response = requests.put(secret_url, headers=headers, json=data)
     response.raise_for_status()
 
-def get_git_remote_info():
-    """Extract the username, PAT, and repository name from the git remote URL."""
-    #result = subprocess.run(["git", "remote", "-v"], capture_output=True, text=True)
-    result = _run_subprocess(["git", "remote", "-v"], capture_output=True, text=True)
-    remote_info = result.stdout
-    match = re.search(r'https://(.+):(.+)@github.com/(.+/.+)\.git', remote_info)
-    if match:
-        return match.group(1), match.group(2), match.group(3)
-    else:
-        raise ValueError("No valid GitHub remote URL found.")
-
 def set_github_secrets():
     """Set AWS credentials as GitHub Secrets based on the git remote info."""
-    aws_access_key_id = _get_var("AWS_ACCESS_KEY_ID")
-    aws_secret_access_key = _get_var("AWS_SECRET_ACCESS_KEY")
-    username, pat, repository = get_git_remote_info()
-    logger.info(f"{username=}")
-    logger.info(f"{repository=}")
-    set_github_secret(pat, repository, 'AWS_ACCESS_KEY_ID', aws_access_key_id)
-    set_github_secret(pat, repository, 'AWS_SECRET_ACCESS_KEY', aws_secret_access_key)
+    github_repository
+    set_github_secret(pat, Config.GITHUB_REPO, 'AWS_ACCESS_KEY_ID', AWS_ACCESS_KEY_ID)
+    set_github_secret(pat, Config.GITHUB_REPO, 'AWS_SECRET_ACCESS_KEY', AWS_SECRET_ACCESS_KEY)
 
+def create_key_pair(key_name=Config.AWS_EC2_KEY_NAME):
+    """Create a new key pair and save it to a file."""
+    ec2_client = boto3.client('ec2', region_name=Config.AWS_REGION)
+    try:
+        key_pair = ec2_client.create_key_pair(KeyName=key_name)
+        private_key = key_pair['KeyMaterial']
 
-from loguru import logger
-import boto3
+        # Save the private key to a file
+        with open(f"{key_name}.pem", "w") as key_file:
+            key_file.write(private_key)
+        os.chmod(f"{key_name}.pem", 0o400)  # Set read-only permissions
 
-# Global constant for the tag value
-PROJECT_NAME = "guiai"
+        logger.info(f"Key pair {key_name} created and saved to {key_name}.pem")
+        return key_name
+    except ClientError as e:
+        logger.error(f"Error creating key pair: {e}")
+        return None
 
-def deploy_ec2_instance(ami='ami-0a8dada81f29ad054', instance_type='g5g.xlarge'):
+def deploy_ec2_instance(
+    ami=Config.AWS_EC2_AMI,
+    instance_type=Config.AWS_EC2_INSTANCE_TYPE,
+    project_name=Config.PROJECT_NAME,
+):
     """
     Deploy an EC2 instance.
 
@@ -178,7 +159,7 @@ def deploy_ec2_instance(ami='ami-0a8dada81f29ad054', instance_type='g5g.xlarge')
     # Check for existing instances
     instances = ec2.instances.filter(
         Filters=[
-            {'Name': 'tag:Name', 'Values': [PROJECT_NAME]},
+            {'Name': 'tag:Name', 'Values': [Config.PROJECT_NAME]},
             {'Name': 'instance-state-name', 'Values': ['running', 'stopped']}
         ]
     )
@@ -207,7 +188,7 @@ def deploy_ec2_instance(ami='ami-0a8dada81f29ad054', instance_type='g5g.xlarge')
                 'Tags': [
                     {
                         'Key': 'Name',
-                        'Value': tag_value
+                        'Value': Config.PROJECT_NAME,
                     }
                 ]
             }
@@ -219,13 +200,49 @@ def deploy_ec2_instance(ami='ami-0a8dada81f29ad054', instance_type='g5g.xlarge')
     logger.info(f"New instance created: ID - {new_instance.id}, IP - {new_instance.public_ip_address}")
     return new_instance.id, new_instance.public_ip_address
 
+def configure_ec2_instance(instance_id=None):
+    if not instance_id:
+        ec2_instance_id, _ = deploy_ec2_instance()
+    else:
+        ec2_instance_id = instance_id
+
+    ssm_client = boto3.client('ssm', region_name=Config.AWS_REGION)
+    
+    # Commands to set up the EC2 instance for Docker builds
+    commands = [
+        "sudo apt-get update",
+        "sudo apt-get install -y docker.io",
+        "sudo systemctl start docker",
+        "sudo systemctl enable docker",
+        "sudo usermod -a -G docker ${USER}",
+        "sudo curl -L \"https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose",
+        "sudo chmod +x /usr/local/bin/docker-compose",
+        "sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose",
+        "sudo apt-get install -y awscli",
+        "aws configure set aws_access_key_id " + Config.AWS_ACCESS_KEY_ID,
+        "aws configure set aws_secret_access_key " + Config.AWS_SECRET_ACCESS_KEY,
+        "aws configure set default.region " + Config.AWS_REGION,
+        # Additional CUDA specific installations can be added here if necessary
+    ]
+
+    # Sending commands to the EC2 instance
+    for command in commands:
+        response = ssm_client.send_command(
+            InstanceIds=[ec2_instance_id],
+            DocumentName="AWS-RunShellScript",
+            Parameters={'commands': [command]},
+        )
+        command_id = response['Command']['CommandId']
+        logger.info(f"Sent command: {command} with CommandId: {command_id}")
+
+    logger.info(f"EC2 instance {ec2_instance_id} configured with Docker and necessary tools.")
 
 def shutdown_ec2_instance():
     ec2 = boto3.resource('ec2')
 
     instances = ec2.instances.filter(
         Filters=[
-            {'Name': 'tag:Name', 'Values': [PROJECT_NAME]},
+            {'Name': 'tag:Name', 'Values': [Config.PROJECT_NAME]},
             {'Name': 'instance-state-name', 'Values': ['running']}
         ]
     )
@@ -234,29 +251,15 @@ def shutdown_ec2_instance():
         logger.info(f"Shutting down instance: ID - {instance.id}")
         instance.stop()
 
-
 def list_ec2_instances_by_tag():
     ec2 = boto3.resource('ec2')
 
     instances = ec2.instances.filter(
-        Filters=[{'Name': 'tag:Name', 'Values': [PROJECT_NAME]}]
+        Filters=[{'Name': 'tag:Name', 'Values': [Config.PROJECT_NAME]}]
     )
 
     for instance in instances:
         logger.info(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
-
-# Usage Example
-# Deploy instance
-#instance_id, instance_ip = deploy_ec2_instance()
-#logger.info(f"Deployed EC2 instance ID: {instance_id}, IP: {instance_ip}")
-
-# List instances
-#list_ec2_instances_by_tag()
-
-# Shutdown instance
-#shutdown_ec2_instance()
-
-import git
 
 def get_repo_details(remote_name="origin"):
     repo = git.Repo(search_parent_directories=True)
@@ -265,7 +268,7 @@ def get_repo_details(remote_name="origin"):
     repo_name = repo_name.replace('.git', '')  # Remove .git from repo name
     return owner, repo_name
 
-def create_iam_role(role_name=f"{PROJECT_NAME}-CodeBuildServiceRole"):
+def create_iam_role(role_name=f"{Config.PROJECT_NAME}-CodeBuildServiceRole"):
     iam = boto3.client('iam')
     assume_role_policy = {
         "Version": "2012-10-17",
@@ -288,7 +291,7 @@ def create_iam_role(role_name=f"{PROJECT_NAME}-CodeBuildServiceRole"):
         role = iam.create_role(
             RoleName=role_name,
             AssumeRolePolicyDocument=json.dumps(assume_role_policy),
-            Tags=[{'Key': 'Name', 'Value': PROJECT_NAME}]
+            Tags=[{'Key': 'Name', 'Value': Config.PROJECT_NAME}]
         )
         role_arn = role['Role']['Arn']
         logger.info("IAM role created")
@@ -307,8 +310,7 @@ def create_iam_role(role_name=f"{PROJECT_NAME}-CodeBuildServiceRole"):
 
     return role_arn
 
-
-def create_codebuild_project(project_name=PROJECT_NAME, docker_buildspec="buildspec.yml"):
+def create_codebuild_project(project_name=Config.PROJECT_NAME, docker_buildspec="buildspec.yml"):
     owner, repo_name = get_repo_details()
     service_role_arn = create_iam_role()
 
@@ -343,18 +345,13 @@ def create_codebuild_project(project_name=PROJECT_NAME, docker_buildspec="builds
                 "environmentVariables": [{"name": "DOCKER_BUILDKIT", "value": "1"}]
             },
             serviceRole=service_role_arn,
-            tags=[{"key": "Name", "value": PROJECT_NAME}],
+            tags=[{"key": "Name", "value": Config.PROJECT_NAME}],
         )
         logger.info(f"New CodeBuild project '{project_name}' created: {response}")
     except Exception as e:
         logger.error(f"Error creating CodeBuild project '{project_name}': {e}")
 
-
-from jinja2 import Environment, FileSystemLoader
-import os
-
-
-def generate_buildspec(image_name=f"{PROJECT_NAME}-app", ecr_repository_uri=None):
+def generate_buildspec(image_name=f"{Config.PROJECT_NAME}-app", ecr_repository_uri=None):
     if not ecr_repository_uri:
         ecr_repository_uri = get_ecr_registry_url()
 
@@ -364,7 +361,7 @@ def generate_buildspec(image_name=f"{PROJECT_NAME}-app", ecr_repository_uri=None
 
     # Render the template
     rendered_buildspec = template.render(
-		aws_region=_get_var("AWS_REGION"),
+        aws_region=Config.AWS_REGION,
         branch_name=get_current_git_branch(),
         ecr_repository_uri=ecr_repository_uri, 
         image_name=image_name
@@ -375,13 +372,12 @@ def generate_buildspec(image_name=f"{PROJECT_NAME}-app", ecr_repository_uri=None
         file.write(rendered_buildspec)
     logger.info("buildspec.yml generated successfully.")
 
-
 def get_current_git_branch():
     repo = git.Repo(search_parent_directories=True)
     branch = repo.active_branch.name
     return branch
 
-def generate_github_actions_workflow(codebuild_project_name=PROJECT_NAME):
+def generate_github_actions_workflow(codebuild_project_name=Config.PROJECT_NAME):
     current_branch = get_current_git_branch()
 
     # Set up Jinja2 environment
@@ -390,7 +386,7 @@ def generate_github_actions_workflow(codebuild_project_name=PROJECT_NAME):
 
     # Render the template with the CodeBuild project name and current branch
     rendered_workflow = template.render(
-        aws_region=_get_var("AWS_REGION"),
+        aws_region=Config.AWS_REGION,
         codebuild_project_name=codebuild_project_name,
         branch_name=current_branch
     )
@@ -402,6 +398,130 @@ def generate_github_actions_workflow(codebuild_project_name=PROJECT_NAME):
         file.write(rendered_workflow)
     logger.info("GitHub Actions workflow file generated successfully.")
 
+def get_quota_usage(
+    # Service code for AWS CodeBuild
+    service_code='codebuild',
+    # Quota code for maximum number of build projects
+    quota_code='L-ACCF6C0D',
+):
+
+    service_quotas = boto3.client('service-quotas', region_name=Config.AWS_REGION)
+
+    # Get information about the quota
+    quota_info = service_quotas.get_service_quota(
+        ServiceCode=service_code,
+        QuotaCode=quota_code
+    )
+
+    quota_value = quota_info['Quota']['Value']
+    usage_info = service_quotas.get_usage_for_quota(
+        ServiceCode=service_code,
+        QuotaCode=quota_code
+    )
+    
+    usage = usage_info['Usage'][0]['Value'] if usage_info['Usage'] else 'Not available'
+
+    return {
+        'QuotaValue': quota_value,
+        'CurrentUsage': usage
+    }
+
+def get_quota_value(
+    # Service code for AWS CodeBuild
+    service_code='codebuild',
+    # Quota code for maximum number of build projects
+    quota_code='L-ACCF6C0D',
+):
+
+    # Create a Service Quotas client
+    service_quotas = boto3.client('service-quotas', region_name=Config.AWS_REGION)
+
+    # Retrieve the quota information
+    try:
+        quota = service_quotas.get_service_quota(
+            ServiceCode=service_code,
+            QuotaCode=quota_code
+        )
+        return quota
+    except service_quotas.exceptions.NoSuchResourceException:
+        print(f"No such quota found for service code: {service_code} and quota code: {quota_code}")
+        return None
+
+def get_codebuild_usage():
+    # Create a CodeBuild client
+    codebuild = boto3.client('codebuild', region_name=config.AWS_REGION)
+
+    # Calculate start time for build counts (e.g., last 24 hours)
+    start_time = datetime.utcnow() - timedelta(hours=24)
+    build_count = 0
+
+    # Get the list of build IDs for the project
+    response = codebuild.list_builds_for_project(projectName=Config.PROJECT_NAME)
+    build_ids = response.get('ids', [])
+    logger.info(f"{build_ids=}")
+
+    # Retrieve detailed information for each build ID
+    builds_info = codebuild.batch_get_builds(ids=build_ids)['builds']
+
+    # Count the number of builds started within the last 24 hours
+    for build in builds_info:
+        if build['startTime'] > start_time:
+            build_count += 1
+
+    return build_count
+
+def configure(build_with_codebuild=False, deploy_to_ecs=False):
+    create_ecr_repository()
+    set_github_secrets()
+
+    if build_with_codebuild:
+        create_codebuild_project()
+    else:
+        ec2_instance_id, _ = deploy_ec2_instance() 
+
+    if deploy_to_ecs:
+        create_ecs_cluster()
+    else:
+        configure_ec2_instance(ec2_instance_id)
 
 if __name__ == "__main__":
     fire.Fire()
+
+
+# SCRATCH
+
+# local build only
+"""
+def build_docker_image(image_name, tag):
+    full_image_name = f"{image_name}:{tag}"
+    command = ["docker", "build", "-t", full_image_name, "."]
+    result = _run_subprocess(command)
+    if result:
+        logger.info(f"Docker image {full_image_name} built successfully.")
+
+
+def authenticate_ecr(region):
+    get_login_command = ["aws", "ecr", "get-login-password", "--region", region]
+    login_password_result = _run_subprocess(get_login_command, log_stdout=True)
+
+    if login_password_result:
+        login_password = login_password_result.stdout.strip()
+        login_command = ["docker", "login", "--username", "AWS", "--password", login_password]
+        login_result = _run_subprocess(login_command)
+        if login_result:
+            logger.info("Authenticated with ECR successfully.")
+
+def push_docker_image(repo_uri, image_name, tag):
+    full_image_name = f"{image_name}:{tag}"
+    remote_image_name = f"{repo_uri}:{tag}"
+
+    # Tagging the image
+    tag_command = ["docker", "tag", full_image_name, remote_image_name]
+    tag_result = run_subprocess(tag_command)
+    if tag_result:
+        # Pushing the image
+        push_command = ["docker", "push", remote_image_name]
+        push_result = _run_subprocess(push_command)
+        if push_result:
+            logger.info(f"Docker image {remote_image_name} pushed to ECR successfully.")
+"""
