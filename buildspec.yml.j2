@@ -6,6 +6,8 @@ phases:
       - echo Starting the build process...
       - git fetch --all
       - git checkout {{ branch_name }}
+      - echo "Commit ID:"
+      - git rev-parse HEAD
       - git reset --hard origin/{{ branch_name }}
   build:
     commands:
