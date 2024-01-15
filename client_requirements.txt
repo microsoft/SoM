@@ -3,6 +3,7 @@ fire
 gitpython
 jinja2
 loguru
+paramiko==3.4.0
 pynacl
 python-dotenv
 requests

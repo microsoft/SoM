@@ -18,6 +18,7 @@ import re
 import subprocess
 import time
 
+from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 from jinja2 import Environment, FileSystemLoader
 from loguru import logger
@@ -25,6 +26,7 @@ from nacl import encoding, public
 import boto3
 import fire
 import git
+import paramiko
 import requests
 
 # Load environment variables from .env file
@@ -50,6 +52,9 @@ class Config:
     # "g5g.xlarge" (T4G 16GB $0.42/hr ARM64)
     AWS_EC2_INSTANCE_TYPE = "p3.2xlarge"
     AWS_EC2_KEY_NAME = f"{PROJECT_NAME}-key"
+    AWS_EC2_SECURITY_GROUP = f"{PROJECT_NAME}-SecurityGroup"
+    AWS_SSM_ROLE_NAME = f"{PROJECT_NAME}-SSMRole"
+    AWS_SSM_PROFILE_NAME = f"{PROJECT_NAME}-SSMInstanceProfile"
 
 def _run_subprocess(command, log_stdout=False):
     try:
@@ -80,7 +85,6 @@ def create_ecs_cluster(cluster_name=f"{Config.PROJECT_NAME}-Cluster"):
     if result:
         output = json.loads(result.stdout)
         logger.info(f"Cluster created successfully: {json.dumps(output, indent=2)}")
-
 
 def create_ecr_repository(repo_name=f"{Config.PROJECT_NAME}-Repo"):
     command = ["aws", "ecr", "create-repository", "--repository-name", repo_name]
@@ -140,21 +144,85 @@ def create_key_pair(key_name=Config.AWS_EC2_KEY_NAME):
         logger.error(f"Error creating key pair: {e}")
         return None
 
+def get_or_create_security_group_id():
+    ec2 = boto3.client('ec2', region_name=Config.AWS_REGION)
+
+    # Try to get the security group ID
+    try:
+        response = ec2.describe_security_groups(GroupNames=[Config.AWS_EC2_SECURITY_GROUP])
+        security_group_id = response['SecurityGroups'][0]['GroupId']
+        logger.info(f"Security group '{Config.AWS_EC2_SECURITY_GROUP}' already exists: {security_group_id}")
+        # TODO: make sure current local ip is allowed
+        return security_group_id
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'InvalidGroup.NotFound':
+            try:
+                # Fetch the current public IP address
+                response = requests.get('https://checkip.amazonaws.com')
+                current_ip = response.text.strip()
+
+                # Create the security group
+                response = ec2.create_security_group(
+                    GroupName=Config.AWS_EC2_SECURITY_GROUP,
+                    Description='Security group for SSH access',
+                    TagSpecifications=[
+                        {
+                            'ResourceType': 'security-group',
+                            'Tags': [{'Key': 'Name', 'Value': Config.PROJECT_NAME}]
+                        }
+                    ]
+                )
+                security_group_id = response['GroupId']
+                logger.info(f"Created security group '{Config.AWS_EC2_SECURITY_GROUP}' with ID: {security_group_id}")
+
+                # Add a rule to allow SSH access
+                ec2.authorize_security_group_ingress(
+                    GroupId=security_group_id,
+                    IpPermissions=[
+                        {
+                            'IpProtocol': 'tcp',
+                            'FromPort': 22,
+                            'ToPort': 22,
+                            'IpRanges': [{'CidrIp': f"{current_ip}/32"}]
+                        }
+                    ]
+                )
+                logger.info(f"Added inbound rule to allow SSH from {current_ip}")
+
+                return security_group_id
+            except ClientError as e:
+                logger.error(f"Error creating security group: {e}")
+                return None
+        else:
+            logger.error(f"Error describing security groups: {e}")
+            return None
+
 def deploy_ec2_instance(
     ami=Config.AWS_EC2_AMI,
     instance_type=Config.AWS_EC2_INSTANCE_TYPE,
     project_name=Config.PROJECT_NAME,
+    key_name=Config.AWS_EC2_KEY_NAME,
 ):
     """
     Deploy an EC2 instance.
 
     - ami: Amazon Machine Image ID. Default is the deep learning AMI.
     - instance_type: Type of instance
-        'p3.2xlarge' (V100 16GB $3.06/hr)
-        'g5g.xlarge' (T4G 16GB $0.42/hr)
     """
     ec2 = boto3.resource('ec2')
     ec2_client = boto3.client('ec2')
+
+    # Check if key pair exists, if not create one
+    try:
+        ec2_client.describe_key_pairs(KeyNames=[key_name])
+    except ClientError as e:
+        create_key_pair(key_name)
+
+    # Fetch the security group ID
+    security_group_id = get_or_create_security_group_id()
+    if not security_group_id:
+        logger.error("Unable to retrieve security group ID. Instance deployment aborted.")
+        return None, None
 
     # Check for existing instances
     instances = ec2.instances.filter(
@@ -182,15 +250,12 @@ def deploy_ec2_instance(
         MinCount=1,
         MaxCount=1,
         InstanceType=instance_type,
+        KeyName=key_name,
+        SecurityGroupIds=[security_group_id],  # Use the fetched security group ID
         TagSpecifications=[
             {
                 'ResourceType': 'instance',
-                'Tags': [
-                    {
-                        'Key': 'Name',
-                        'Value': Config.PROJECT_NAME,
-                    }
-                ]
+                'Tags': [{'Key': 'Name', 'Value': project_name}]
             }
         ]
     )[0]
@@ -200,40 +265,49 @@ def deploy_ec2_instance(
     logger.info(f"New instance created: ID - {new_instance.id}, IP - {new_instance.public_ip_address}")
     return new_instance.id, new_instance.public_ip_address
 
-def configure_ec2_instance(instance_id=None):
+def configure_ec2_instance(instance_id=None, instance_ip=None):
     if not instance_id:
-        ec2_instance_id, _ = deploy_ec2_instance()
+        ec2_instance_id, ec2_instance_ip = deploy_ec2_instance()
     else:
         ec2_instance_id = instance_id
+        ec2_instance_ip = instance_ip  # Ensure instance IP is provided if instance_id is manually passed
 
-    ssm_client = boto3.client('ssm', region_name=Config.AWS_REGION)
-    
-    # Commands to set up the EC2 instance for Docker builds
-    commands = [
-        "sudo apt-get update",
-        "sudo apt-get install -y docker.io",
-        "sudo systemctl start docker",
-        "sudo systemctl enable docker",
-        "sudo usermod -a -G docker ${USER}",
-        "sudo curl -L \"https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose",
-        "sudo chmod +x /usr/local/bin/docker-compose",
-        "sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose",
-        "sudo apt-get install -y awscli",
-        "aws configure set aws_access_key_id " + Config.AWS_ACCESS_KEY_ID,
-        "aws configure set aws_secret_access_key " + Config.AWS_SECRET_ACCESS_KEY,
-        "aws configure set default.region " + Config.AWS_REGION,
-        # Additional CUDA specific installations can be added here if necessary
-    ]
+    key = paramiko.RSAKey.from_private_key_file(f"{Config.AWS_EC2_KEY_NAME}.pem")
+    ssh_client = paramiko.SSHClient()
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    # Sending commands to the EC2 instance
-    for command in commands:
-        response = ssm_client.send_command(
-            InstanceIds=[ec2_instance_id],
-            DocumentName="AWS-RunShellScript",
-            Parameters={'commands': [command]},
-        )
-        command_id = response['Command']['CommandId']
-        logger.info(f"Sent command: {command} with CommandId: {command_id}")
+    try:
+        ssh_client.connect(hostname=ec2_instance_ip, username='ubuntu', pkey=key)
+
+        # Commands to set up the EC2 instance for Docker builds
+        commands = [
+            "sudo apt-get update",
+            "sudo apt-get install -y docker.io",
+            "sudo systemctl start docker",
+            "sudo systemctl enable docker",
+            "sudo usermod -a -G docker ${USER}",
+            "sudo curl -L \"https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose",
+            "sudo chmod +x /usr/local/bin/docker-compose",
+            "sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose",
+            "sudo apt-get install -y awscli",
+            "aws configure set aws_access_key_id " + Config.AWS_ACCESS_KEY_ID,
+            "aws configure set aws_secret_access_key " + Config.AWS_SECRET_ACCESS_KEY,
+            "aws configure set default.region " + Config.AWS_REGION,
+            # Additional CUDA specific installations can be added here if necessary
+        ]
+
+        for command in commands:
+            stdin, stdout, stderr = ssh_client.exec_command(command)
+            exit_status = stdout.channel.recv_exit_status()  # Blocking call
+            if exit_status == 0:
+                logger.info(f"Executed command: {command}")
+            else:
+                logger.error(f"Error in command: {command}, Exit Status: {exit_status}, Error: {stderr.read()}")
+
+    except Exception as e:
+        logger.error(f"SSH connection error: {e}")
+    finally:
+        ssh_client.close()
 
     logger.info(f"EC2 instance {ec2_instance_id} configured with Docker and necessary tools.")
 
@@ -261,6 +335,23 @@ def list_ec2_instances_by_tag():
     for instance in instances:
         logger.info(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
 
+def generate_github_actions_workflow__ec2():
+    current_branch = get_current_git_branch()
+
+    # Set up Jinja2 environment
+    env = Environment(loader=FileSystemLoader('.'))
+    template = env.get_template('docker-build-ec2.yml.j2')
+
+    # Render the template with the current branch
+    rendered_workflow = template.render(branch_name=current_branch)
+
+    # Write the rendered workflow to a file
+    workflows_dir = '.github/workflows'
+    os.makedirs(workflows_dir, exist_ok=True)
+    with open(os.path.join(workflows_dir, 'docker-build-ec2.yml'), 'w') as file:
+        file.write(rendered_workflow)
+    logger.info("GitHub Actions EC2 workflow file generated successfully.")
+
 def get_repo_details(remote_name="origin"):
     repo = git.Repo(search_parent_directories=True)
     remote_url = repo.remote(remote_name).url
@@ -268,7 +359,7 @@ def get_repo_details(remote_name="origin"):
     repo_name = repo_name.replace('.git', '')  # Remove .git from repo name
     return owner, repo_name
 
-def create_iam_role(role_name=f"{Config.PROJECT_NAME}-CodeBuildServiceRole"):
+def create_codebuild_iam_role(role_name=f"{Config.PROJECT_NAME}-CodeBuildServiceRole"):
     iam = boto3.client('iam')
     assume_role_policy = {
         "Version": "2012-10-17",
@@ -312,7 +403,7 @@ def create_iam_role(role_name=f"{Config.PROJECT_NAME}-CodeBuildServiceRole"):
 
 def create_codebuild_project(project_name=Config.PROJECT_NAME, docker_buildspec="buildspec.yml"):
     owner, repo_name = get_repo_details()
-    service_role_arn = create_iam_role()
+    service_role_arn = create_codebuild_iam_role()
 
     codebuild = boto3.client('codebuild')
 
@@ -377,7 +468,7 @@ def get_current_git_branch():
     branch = repo.active_branch.name
     return branch
 
-def generate_github_actions_workflow(codebuild_project_name=Config.PROJECT_NAME):
+def generate_github_actions_workflow__codebuild(codebuild_project_name=Config.PROJECT_NAME):
     current_branch = get_current_git_branch()
 
     # Set up Jinja2 environment
@@ -477,12 +568,10 @@ def configure(build_with_codebuild=False, deploy_to_ecs=False):
     if build_with_codebuild:
         create_codebuild_project()
     else:
-        ec2_instance_id, _ = deploy_ec2_instance() 
+        configure_ec2_instance()
 
     if deploy_to_ecs:
         create_ecs_cluster()
-    else:
-        configure_ec2_instance(ec2_instance_id)
 
 if __name__ == "__main__":
     fire.Fire()

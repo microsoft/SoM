@@ -1,0 +1,27 @@
+name: Docker Build on EC2 Instance
+
+on:
+  push:
+    branches:
+      - feat/deploy
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: SSH and Execute Build on EC2
+        uses: appleboy/ssh-action@master
+        with:
+          
+          host: ${{ secrets.EC2_IP }}
+          username: ${{ secrets.EC2_USERNAME }}  # Usually 'ubuntu' or 'ec2-user'
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          
+          script: |
+            cd /path/to/your/project
+            # Commands to build and deploy
+            sudo docker build -t your-image-name .
+            sudo docker run -d -p 80:80 your-image-name
