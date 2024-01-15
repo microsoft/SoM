@@ -1,19 +1,20 @@
 version: 0.2
 
 phases:
+  install:
+    commands:
+      - echo Installing necessary dependencies...
+      - apt-get update && apt-get install -y git
   pre_build:
     commands:
       - echo Starting the build process...
-      - echo Current working directory:
-      - pwd
-      - ls -la
+      - echo Cloning the repository...
+      - git clone https://github.com/OpenAdaptAI/SoM.git
+      - cd SoM
       - git fetch --all
       - git checkout feat/deploy
       - echo "Commit ID:"
       - git rev-parse HEAD
-      - git reset --hard origin/feat/deploy
-      - echo "Post-checkout file listing:"
-      - ls -la
   build:
     commands:
       - echo Build started on `date`
