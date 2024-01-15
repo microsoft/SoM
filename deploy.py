@@ -337,7 +337,7 @@ def create_codebuild_project(project_name=PROJECT_NAME, docker_buildspec="builds
             },
             artifacts={"type": "NO_ARTIFACTS"},
             environment={
-                "type": "LINUX_CONTAINER",
+                "type": "LINUX_GPU_CONTAINER",
                 "image": "aws/codebuild/standard:5.0",  # Use an image that supports CUDA
                 "computeType": "BUILD_GENERAL1_LARGE",
                 "environmentVariables": [{"name": "DOCKER_BUILDKIT", "value": "1"}]
