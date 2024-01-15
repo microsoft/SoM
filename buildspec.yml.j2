@@ -3,11 +3,14 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo Starting the build process...
+      - echo "Starting the build process..."
+      - echo "Fetching..."
       - git fetch --all
+      - echo "Checking out {{ branch_name }}..."
       - git checkout {{ branch_name }}
       - echo "Commit ID:"
       - git rev-parse HEAD
+      - echo "Resetting..."
       - git reset --hard origin/{{ branch_name }}
   build:
     commands:
