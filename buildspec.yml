@@ -1,23 +1,15 @@
 version: 0.2
 
 phases:
-  install:
-    commands:
-      - echo Installing necessary dependencies...
-      - apt-get update && apt-get install -y git
   pre_build:
     commands:
       - echo Starting the build process...
-      - echo Cloning the repository...
-      - git clone https://github.com/OpenAdaptAI/SoM.git
-      - cd SoM
-      - git fetch --all
-      - git checkout feat/deploy
-      - echo "Commit ID:"
-      - git rev-parse HEAD
   build:
     commands:
       - echo Build started on `date`
+      - echo Checking out feat/deploy...
+      - git fetch --all
+      - git checkout feat/deploy
       - echo Building the Docker image...
       - docker build -t 726461418004.dkr.ecr.us-east-1.amazonaws.com/guiai-app:latest .
   post_build:

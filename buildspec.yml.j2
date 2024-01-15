@@ -4,19 +4,12 @@ phases:
   pre_build:
     commands:
       - echo Starting the build process...
-      - echo Current working directory:
-      - pwd
-      - ls -la
-      - git fetch --all
-      - git checkout {{ branch_name }}
-      - echo "Commit ID:"
-      - git rev-parse HEAD
-      - git reset --hard origin/{{ branch_name }}
-      - echo "Post-checkout file listing:"
-      - ls -la
   build:
     commands:
       - echo Build started on `date`
+      - echo Checking out {{ branch_name }}...
+      - git fetch --all
+      - git checkout {{ branch_name }}
       - echo Building the Docker image...
       - docker build -t {{ ecr_repository_uri }}/{{ image_name }}:latest .
   post_build:
