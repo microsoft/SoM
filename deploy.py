@@ -161,20 +161,34 @@ def create_key_pair(key_name=Config.AWS_EC2_KEY_NAME, key_path=Config.AWS_EC2_KE
 def get_or_create_security_group_id():
     ec2 = boto3.client('ec2', region_name=Config.AWS_REGION)
 
-    # Try to get the security group ID
     try:
+        # Try to get the security group ID
         response = ec2.describe_security_groups(GroupNames=[Config.AWS_EC2_SECURITY_GROUP])
         security_group_id = response['SecurityGroups'][0]['GroupId']
         logger.info(f"Security group '{Config.AWS_EC2_SECURITY_GROUP}' already exists: {security_group_id}")
-        # TODO: make sure current local ip is allowed
+        
+        # Add or update the rule to allow SSH access from any IP
+        try:
+            ec2.authorize_security_group_ingress(
+                GroupId=security_group_id,
+                IpPermissions=[
+                    {
+                        'IpProtocol': 'tcp',
+                        'FromPort': 22,
+                        'ToPort': 22,
+                        'IpRanges': [{'CidrIp': '0.0.0.0/0'}]
+                    }
+                ]
+            )
+            logger.info("Updated inbound rule to allow SSH from any IP")
+        except ClientError as e:
+            # If the rule already exists, it might throw an error. You can choose to ignore it or handle it as needed.
+            logger.info("SSH access rule already exists or could not be updated")
+
         return security_group_id
     except ClientError as e:
         if e.response['Error']['Code'] == 'InvalidGroup.NotFound':
             try:
-                # Fetch the current public IP address
-                response = requests.get('https://checkip.amazonaws.com')
-                current_ip = response.text.strip()
-
                 # Create the security group
                 response = ec2.create_security_group(
                     GroupName=Config.AWS_EC2_SECURITY_GROUP,
@@ -195,14 +209,13 @@ def get_or_create_security_group_id():
                     IpPermissions=[
                         {
                             'IpProtocol': 'tcp',
-                            'FromPort': 22,
-                            'ToPort': 22,
-                            'IpRanges': [{'CidrIp': f"{current_ip}/32"}]
+							'FromPort': 22,
+							'ToPort': 22,
+							'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
                         }
                     ]
                 )
-                logger.info(f"Added inbound rule to allow SSH from {current_ip}")
-
+                logger.info("Added inbound rule to allow SSH from any IP")
                 return security_group_id
             except ClientError as e:
                 logger.error(f"Error creating security group: {e}")
@@ -242,7 +255,7 @@ def deploy_ec2_instance(
     instances = ec2.instances.filter(
         Filters=[
             {'Name': 'tag:Name', 'Values': [Config.PROJECT_NAME]},
-            {'Name': 'instance-state-name', 'Values': ['running', 'stopped']}
+            {'Name': 'instance-state-name', 'Values': ['running', 'pending', 'stopped']}
         ]
     )
 
@@ -257,6 +270,16 @@ def deploy_ec2_instance(
             instance.reload()
             logger.info(f"Instance started: ID - {instance.id}, IP - {instance.public_ip_address}")
             return instance.id, instance.public_ip_address
+        elif state == 'pending':
+            logger.info(f"Instance is pending: ID - {instance.id}. Waiting for 'running' state.")
+            try:
+                instance.wait_until_running()  # Wait for the instance to be in 'running' state
+                instance.reload()  # Reload the instance attributes
+                logger.info(f"Instance is now running: ID - {instance.id}, IP - {instance.public_ip_address}")
+                return instance.id, instance.public_ip_address
+            except botocore.exceptions.WaiterError as e:
+                logger.error(f"Error waiting for instance to run: {e}")
+                return None, None
 
     # Create a new instance if none exist
     new_instance = ec2.create_instances(
@@ -317,13 +340,11 @@ def configure_ec2_instance(instance_id=None, instance_ip=None):
                 logger.info(f"Executed command: {command}")
             else:
                 logger.error(f"Error in command: {command}, Exit Status: {exit_status}, Error: {stderr.read()}")
-
     except Exception as e:
         logger.error(f"SSH connection error: {e}")
     finally:
         ssh_client.close()
 
-    logger.info(f"EC2 instance {ec2_instance_id} configured with Docker and necessary tools.")
 
 def shutdown_ec2_instance():
     ec2 = boto3.resource('ec2')
