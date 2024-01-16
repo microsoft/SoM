@@ -21,6 +21,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           {% endraw %}
           script: |
+            whoami
+            ls -al
+
             git clone https://github.com/{{ github_path }}
             cd {{ github_repo }}
 
