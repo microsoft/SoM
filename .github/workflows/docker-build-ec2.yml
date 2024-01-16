@@ -21,18 +21,21 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           
           script: |
+            whoami
+            ls -al
             git clone https://github.com/OpenAdaptAI/SoM
-            cd SoM
-
+            ls -al
+            #cd SoM
+            #
             # Login to AWS ECR
-            $(aws ecr get-login --no-include-email --region us-east-1)
-
-            # Build the image
-            sudo docker build -t openadapt .
-            #sudo docker run -d -p 80:80 openadapt
-
-            # Tag the image for the ECR repository
-            docker tag openadapt:latest 726461418004.dkr.ecr.us-east-1.amazonaws.com/openadapt:latest
-
+            #$(aws ecr get-login --no-include-email --region us-east-1)
+            #
+            ## Build the image
+            #sudo docker build -t openadapt .
+            ##sudo docker run -d -p 80:80 openadapt
+            #
+            ## Tag the image for the ECR repository
+            #docker tag openadapt:latest 726461418004.dkr.ecr.us-east-1.amazonaws.com/openadapt:latest
+            #
             # Push the image to ECR
-            docker push 726461418004.dkr.ecr.us-east-1.amazonaws.com/openadapt:latest
+            #docker push 726461418004.dkr.ecr.us-east-1.amazonaws.com/openadapt:latest
