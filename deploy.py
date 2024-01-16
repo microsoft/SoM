@@ -52,6 +52,7 @@ class Config:
     # "g5g.xlarge" (T4G 16GB $0.42/hr ARM64)
     AWS_EC2_INSTANCE_TYPE = "p3.2xlarge"
     AWS_EC2_KEY_NAME = f"{PROJECT_NAME}-key"
+    AWS_EC2_KEY_PATH = f"./{AWS_EC2_KEY_NAME}.pem"
     AWS_EC2_SECURITY_GROUP = f"{PROJECT_NAME}-SecurityGroup"
     AWS_SSM_ROLE_NAME = f"{PROJECT_NAME}-SSMRole"
     AWS_SSM_PROFILE_NAME = f"{PROJECT_NAME}-SSMInstanceProfile"
@@ -119,14 +120,23 @@ def set_github_secret(token: str, repo: str, secret_name: str, secret_value: str
     data = {"encrypted_value": encrypted_value, "key_id": key_id}
     response = requests.put(secret_url, headers=headers, json=data)
     response.raise_for_status()
+    logger.info(f"set {secret_name=}")
 
 def set_github_secrets():
-    """Set AWS credentials as GitHub Secrets based on the git remote info."""
-    github_repository
-    set_github_secret(pat, Config.GITHUB_REPO, 'AWS_ACCESS_KEY_ID', AWS_ACCESS_KEY_ID)
-    set_github_secret(pat, Config.GITHUB_REPO, 'AWS_SECRET_ACCESS_KEY', AWS_SECRET_ACCESS_KEY)
+    """Set AWS credentials and SSH private key as GitHub Secrets."""
+    # Set AWS secrets
+    set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_REPO, 'AWS_ACCESS_KEY_ID', Config.AWS_ACCESS_KEY_ID)
+    set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_REPO, 'AWS_SECRET_ACCESS_KEY', Config.AWS_SECRET_ACCESS_KEY)
 
-def create_key_pair(key_name=Config.AWS_EC2_KEY_NAME):
+    # Read the SSH private key from the file
+    try:
+        with open(Config.AWS_EC2_KEY_PATH, 'r') as key_file:
+            ssh_private_key = key_file.read()
+        set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_REPO, 'SSH_PRIVATE_KEY', ssh_private_key)
+    except IOError as e:
+        logger.error(f"Error reading SSH private key file: {e}")
+
+def create_key_pair(key_name=Config.AWS_EC2_KEY_NAME, key_path=Config.AWS_EC2_KEY_PATH):
     """Create a new key pair and save it to a file."""
     ec2_client = boto3.client('ec2', region_name=Config.AWS_REGION)
     try:
@@ -134,11 +144,11 @@ def create_key_pair(key_name=Config.AWS_EC2_KEY_NAME):
         private_key = key_pair['KeyMaterial']
 
         # Save the private key to a file
-        with open(f"{key_name}.pem", "w") as key_file:
+        with open(key_path, "w") as key_file:
             key_file.write(private_key)
-        os.chmod(f"{key_name}.pem", 0o400)  # Set read-only permissions
+        os.chmod(key_path, 0o400)  # Set read-only permissions
 
-        logger.info(f"Key pair {key_name} created and saved to {key_name}.pem")
+        logger.info(f"Key pair {key_name} created and saved to {key_path}")
         return key_name
     except ClientError as e:
         logger.error(f"Error creating key pair: {e}")
