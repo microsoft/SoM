@@ -15,13 +15,24 @@ jobs:
       - name: SSH and Execute Build on EC2
         uses: appleboy/ssh-action@master
         with:
+          host: {{ host }}
+          username: {{ username }}  # Usually 'ubuntu' or 'ec2-user'
           {% raw %}
-          host: ${{ secrets.EC2_IP }}
-          username: ${{ secrets.EC2_USERNAME }}  # Usually 'ubuntu' or 'ec2-user'
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           {% endraw %}
           script: |
-            cd /path/to/your/project
-            # Commands to build and deploy
-            sudo docker build -t your-image-name .
-            sudo docker run -d -p 80:80 your-image-name
+            git clone https://github.com/{{ github_path }}
+            cd {{ github_repo }}
+
+            # Login to AWS ECR
+            $(aws ecr get-login --no-include-email --region {{ aws_region }})
+
+            # Build the image
+            sudo docker build -t {{ project_name }} .
+            #sudo docker run -d -p 80:80 {{ project_name }}
+
+            # Tag the image for the ECR repository
+            docker tag {{ project_name }}:latest {{ ecr_repository_uri }}/{{ project_name }}:latest
+
+            # Push the image to ECR
+            docker push {{ ecr_repository_uri }}/{{ project_name }}:latest

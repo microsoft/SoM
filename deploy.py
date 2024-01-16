@@ -43,6 +43,7 @@ class Config:
     AWS_ACCESS_KEY_ID = _get_env("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = _get_env("AWS_SECRET_ACCESS_KEY")
     AWS_REGION = _get_env("AWS_REGION")
+    GITHUB_OWNER = _get_env("GITHUB_OWNER")
     GITHUB_REPO = _get_env("GITHUB_REPO")
     GITHUB_TOKEN = _get_env("GITHUB_TOKEN")
     PROJECT_NAME = _get_env("PROJECT_NAME")
@@ -54,8 +55,10 @@ class Config:
     AWS_EC2_KEY_NAME = f"{PROJECT_NAME}-key"
     AWS_EC2_KEY_PATH = f"./{AWS_EC2_KEY_NAME}.pem"
     AWS_EC2_SECURITY_GROUP = f"{PROJECT_NAME}-SecurityGroup"
+    AWS_EC2_USER = "ubuntu"
     AWS_SSM_ROLE_NAME = f"{PROJECT_NAME}-SSMRole"
     AWS_SSM_PROFILE_NAME = f"{PROJECT_NAME}-SSMInstanceProfile"
+    GITHUB_PATH = f"{GITHUB_OWNER}/{GITHUB_REPO}"
 
 def _run_subprocess(command, log_stdout=False):
     try:
@@ -94,8 +97,9 @@ def create_ecr_repository(repo_name=f"{Config.PROJECT_NAME}-Repo"):
         logger.info(f"ECR repository {repo_name} created successfully.")
 
 def get_ecr_registry_url():
-    sts_client = boto3.client('sts', region_name=config.AWS_REGION)
+    sts_client = boto3.client('sts', region_name=Config.AWS_REGION)
     account_id = sts_client.get_caller_identity()["Account"]
+    region = Config.AWS_REGION
     return f"{account_id}.dkr.ecr.{region}.amazonaws.com"
 
 def encrypt(public_key: str, secret_value: str) -> str:
@@ -125,14 +129,14 @@ def set_github_secret(token: str, repo: str, secret_name: str, secret_value: str
 def set_github_secrets():
     """Set AWS credentials and SSH private key as GitHub Secrets."""
     # Set AWS secrets
-    set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_REPO, 'AWS_ACCESS_KEY_ID', Config.AWS_ACCESS_KEY_ID)
-    set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_REPO, 'AWS_SECRET_ACCESS_KEY', Config.AWS_SECRET_ACCESS_KEY)
+    set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_PATH, 'AWS_ACCESS_KEY_ID', Config.AWS_ACCESS_KEY_ID)
+    set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_PATH, 'AWS_SECRET_ACCESS_KEY', Config.AWS_SECRET_ACCESS_KEY)
 
     # Read the SSH private key from the file
     try:
         with open(Config.AWS_EC2_KEY_PATH, 'r') as key_file:
             ssh_private_key = key_file.read()
-        set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_REPO, 'SSH_PRIVATE_KEY', ssh_private_key)
+        set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_PATH, 'SSH_PRIVATE_KEY', ssh_private_key)
     except IOError as e:
         logger.error(f"Error reading SSH private key file: {e}")
 
@@ -348,12 +352,24 @@ def list_ec2_instances_by_tag():
 def generate_github_actions_workflow__ec2():
     current_branch = get_current_git_branch()
 
+    _, host = deploy_ec2_instance()
+
     # Set up Jinja2 environment
     env = Environment(loader=FileSystemLoader('.'))
     template = env.get_template('docker-build-ec2.yml.j2')
 
+    ecr_repository_uri = get_ecr_registry_url()
+
     # Render the template with the current branch
-    rendered_workflow = template.render(branch_name=current_branch)
+    rendered_workflow = template.render(
+        branch_name=current_branch,
+        host=host,
+        username=Config.AWS_EC2_USER,
+        project_name=Config.PROJECT_NAME,
+        github_path=Config.GITHUB_PATH,
+        github_repo=Config.GITHUB_REPO,
+        ecr_repository_uri=ecr_repository_uri,
+    )
 
     # Write the rendered workflow to a file
     workflows_dir = '.github/workflows'
