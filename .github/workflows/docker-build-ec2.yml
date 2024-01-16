@@ -25,7 +25,7 @@ jobs:
             cd SoM
 
             # Login to AWS ECR
-            $(aws ecr get-login --no-include-email --region )
+            $(aws ecr get-login --no-include-email --region us-east-1)
 
             # Build the image
             sudo docker build -t openadapt .

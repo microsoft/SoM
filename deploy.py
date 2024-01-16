@@ -369,6 +369,7 @@ def generate_github_actions_workflow__ec2():
         github_path=Config.GITHUB_PATH,
         github_repo=Config.GITHUB_REPO,
         ecr_repository_uri=ecr_repository_uri,
+        aws_region=Config.AWS_REGION,
     )
 
     # Write the rendered workflow to a file
