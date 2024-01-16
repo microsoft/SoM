@@ -21,11 +21,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           
           script: |
-            whoami
-            ls -al
-
             git clone https://github.com/OpenAdaptAI/SoM
             cd SoM
+            git checkout feat/deploy
+            ls -al
 
             # Login to AWS ECR
             $(aws ecr get-login --no-include-email --region us-east-1)

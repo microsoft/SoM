@@ -21,11 +21,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           {% endraw %}
           script: |
-            whoami
-            ls -al
-
             git clone https://github.com/{{ github_path }}
             cd {{ github_repo }}
+            git checkout {{ branch_name }}
+            ls -al
 
             # Login to AWS ECR
             $(aws ecr get-login --no-include-email --region {{ aws_region }})
