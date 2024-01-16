@@ -51,6 +51,7 @@ class Config:
     AWS_EC2_AMI = "ami-0a8dada81f29ad054"
     # "p3.2xlarge" (V100 16GB $3.06/hr x86_64)
     # "g5g.xlarge" (T4G 16GB $0.42/hr ARM64)
+    AWS_EC2_DISK_SIZE = 100  # GB
     AWS_EC2_INSTANCE_TYPE = "p3.2xlarge"
     AWS_EC2_KEY_NAME = f"{PROJECT_NAME}-key"
     AWS_EC2_KEY_PATH = f"./{AWS_EC2_KEY_NAME}.pem"
@@ -229,6 +230,7 @@ def deploy_ec2_instance(
     instance_type=Config.AWS_EC2_INSTANCE_TYPE,
     project_name=Config.PROJECT_NAME,
     key_name=Config.AWS_EC2_KEY_NAME,
+    disk_size=Config.AWS_EC2_DISK_SIZE,
 ):
     """
     Deploy an EC2 instance.
@@ -280,6 +282,15 @@ def deploy_ec2_instance(
             except botocore.exceptions.WaiterError as e:
                 logger.error(f"Error waiting for instance to run: {e}")
                 return None, None
+    # Define EBS volume configuration
+    ebs_config = {
+        'DeviceName': '/dev/sda1',  # You may need to change this depending on the instance type and AMI
+        'Ebs': {
+            'VolumeSize': disk_size,
+            'VolumeType': 'gp3',  # Or other volume types like gp2, io1, etc.
+            'DeleteOnTermination': True  # Set to False if you want to keep the volume after instance termination
+        },
+    }
 
     # Create a new instance if none exist
     new_instance = ec2.create_instances(
@@ -288,12 +299,13 @@ def deploy_ec2_instance(
         MaxCount=1,
         InstanceType=instance_type,
         KeyName=key_name,
-        SecurityGroupIds=[security_group_id],  # Use the fetched security group ID
+        SecurityGroupIds=[security_group_id],
+        BlockDeviceMappings=[ebs_config],
         TagSpecifications=[
             {
                 'ResourceType': 'instance',
                 'Tags': [{'Key': 'Name', 'Value': project_name}]
-            }
+            },
         ]
     )[0]
 
@@ -336,6 +348,13 @@ def configure_ec2_instance(instance_id=None, instance_ip=None):
         for command in commands:
             stdin, stdout, stderr = ssh_client.exec_command(command)
             exit_status = stdout.channel.recv_exit_status()  # Blocking call
+
+            secret_keys = ["Config.AWS_SECRET_ACCESS_KEY"]
+            for secret_key in secret_keys:
+                secret_val = getattr(Config, secret_key)
+                if secret_val in comamnd:
+                    command = command.replace(secret_val, "*" * len(secret_val))
+
             if exit_status == 0:
                 logger.info(f"Executed command: {command}")
             else:
@@ -346,7 +365,7 @@ def configure_ec2_instance(instance_id=None, instance_ip=None):
         ssh_client.close()
 
 
-def shutdown_ec2_instance():
+def shutdown_ec2_instances():
     ec2 = boto3.resource('ec2')
 
     instances = ec2.instances.filter(
@@ -359,6 +378,56 @@ def shutdown_ec2_instance():
     for instance in instances:
         logger.info(f"Shutting down instance: ID - {instance.id}")
         instance.stop()
+
+def terminate_ec2_instances():
+    ec2_resource = boto3.resource('ec2')
+    ec2_client = boto3.client('ec2')
+
+    # Terminate EC2 instances
+    instances = ec2_resource.instances.filter(
+        Filters=[
+            {'Name': 'tag:Name', 'Values': [Config.PROJECT_NAME]},
+            {'Name': 'instance-state-name', 'Values': ['pending', 'running', 'shutting-down', 'stopped', 'stopping']}
+        ]
+    )
+
+    instance_ids = [instance.id for instance in instances]
+    if instance_ids:
+        ec2_resource.instances.filter(InstanceIds=instance_ids).terminate()
+        for instance_id in instance_ids:
+            logger.info(f"Terminating instance: ID - {instance_id}")
+
+    # Wait for instances to terminate before proceeding
+    for instance_id in instance_ids:
+        instance = ec2_resource.Instance(instance_id)
+        instance.wait_until_terminated()
+    # Detach and delete EBS volumes
+    for instance_id in instance_ids:
+        instance = ec2_resource.Instance(instance_id)
+        for volume in instance.volumes.all():
+            if volume.state == 'in-use':
+                volume.detach_from_instance(InstanceId=instance_id, Force=True)
+                logger.info(f"Detached volume: {volume.id} from {instance_id}")
+
+            # Wait until the volume is available before deletion
+            volume.wait_until_available()
+            volume.delete()
+            logger.info(f"Deleted volume: {volume.id}")
+
+    # Check for network interfaces
+    network_interfaces = ec2_client.describe_network_interfaces(
+        #Filters=[{'Name': 'group-id', 'Values': [security_group_id]}]
+    )['NetworkInterfaces']
+    for ni in network_interfaces:
+        ec2_client.detach_network_interface(AttachmentId=ni['Attachment']['AttachmentId'])
+        ec2_client.delete_network_interface(NetworkInterfaceId=ni['NetworkInterfaceId'])
+
+    # Retry deleting security group
+    try:
+        ec2_client.delete_security_group(GroupName=Config.AWS_EC2_SECURITY_GROUP)
+        logger.info(f"Deleted security group: {Config.AWS_EC2_SECURITY_GROUP}")
+    except ClientError as e:
+        logger.error(f"Error deleting security group: {e}")
 
 def list_ec2_instances_by_tag():
     ec2 = boto3.resource('ec2')

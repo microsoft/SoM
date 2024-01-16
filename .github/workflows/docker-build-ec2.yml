@@ -15,7 +15,7 @@ jobs:
       - name: SSH and Execute Build on EC2
         uses: appleboy/ssh-action@master
         with:
-          host: 44.197.101.62
+          host: 3.235.171.125
           username: ubuntu  # Usually 'ubuntu' or 'ec2-user'
           
           key: ${{ secrets.SSH_PRIVATE_KEY }}
