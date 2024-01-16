@@ -23,8 +23,8 @@ jobs:
           script: |
             whoami
             ls -al
-            git clone https://github.com/OpenAdaptAI/SoM
-            ls -al
+            #git clone https://github.com/OpenAdaptAI/SoM
+            #ls -al
             #cd SoM
             #
             # Login to AWS ECR
