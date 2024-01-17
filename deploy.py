@@ -48,7 +48,8 @@ class Config:
     GITHUB_TOKEN = _get_env("GITHUB_TOKEN")
     PROJECT_NAME = _get_env("PROJECT_NAME")
 
-    AWS_EC2_AMI = "ami-0a8dada81f29ad054"
+    AWS_EC2_AMI = "ami-0557a15b87f6559cf" #"ami-0a8dada81f29ad054"
+                  
     # "p3.2xlarge" (V100 16GB $3.06/hr x86_64)
     # "g5g.xlarge" (T4G 16GB $0.42/hr ARM64)
     AWS_EC2_DISK_SIZE = 100  # GB

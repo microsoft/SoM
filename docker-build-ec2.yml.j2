@@ -22,6 +22,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           {% endraw %}
           script: |
+            nvcc --version
+            echo CUDA_HOME=$CUDA_HOME
+            #export CUDA_HOME=/usr/local/cuda
+
             git clone https://github.com/{{ github_path }}
             cd {{ github_repo }}
             git checkout {{ branch_name }}
