@@ -15,6 +15,7 @@ jobs:
       - name: SSH and Execute Build on EC2
         uses: appleboy/ssh-action@master
         with:
+          command_timeout: "60m"
           host: {{ host }}
           username: {{ username }}  # Usually 'ubuntu' or 'ec2-user'
           {% raw %}
