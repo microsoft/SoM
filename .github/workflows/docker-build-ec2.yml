@@ -35,6 +35,7 @@ jobs:
             git clone https://github.com/OpenAdaptAI/SoM
             cd SoM
             git checkout feat/deploy
+            git pull
 
             # Build the image
             sudo nvidia-docker build -t openadapt .

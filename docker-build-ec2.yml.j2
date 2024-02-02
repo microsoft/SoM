@@ -35,6 +35,7 @@ jobs:
             git clone https://github.com/{{ github_path }}
             cd {{ github_repo }}
             git checkout {{ branch_name }}
+            git pull
 
             # Build the image
             sudo nvidia-docker build -t {{ project_name }} .
