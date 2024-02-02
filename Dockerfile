@@ -2,8 +2,6 @@ FROM nvidia/cuda:12.3.1-devel-ubuntu20.04
 
 RUN nvcc --version
 
-#ENV CUDA_HOME /usr/local/cuda
-
 # Install Python, pip, and git
 RUN apt-get update && \
     apt-get install -y python3-pip python3-dev git && \
