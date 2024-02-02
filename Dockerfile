@@ -1,10 +1,5 @@
 FROM nvidia/cuda:12.3.1-devel-ubuntu22.04
 
-RUN nvcc --version
-
-RUN echo CUDA_HOME=$CUDA_HOME
-RUN echo LD_LIBRARY_PATH=$LD_LIBRARY_PATH
-
 # Install Python, pip, git, ninja
 RUN apt-get update && \
     apt-get install -y python3-pip python3-dev git ninja-build wget && \
@@ -17,7 +12,6 @@ WORKDIR /usr/src/app
 # Copy the current directory contents into the container at /usr/src/app
 COPY . .
 
-# Set FORCE_CUDA if necessary
 ENV FORCE_CUDA=1
 
 # Install PyTorch with CUDA support and other dependencies

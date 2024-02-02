@@ -42,10 +42,10 @@ jobs:
             #sudo docker run -d -p 80:80 {{ project_name }}
 
             # Tag the image for the ECR repository
-            docker tag {{ project_name }}:latest {{ ecr_repository_uri }}/{{ project_name }}:latest
+            docker tag {{ project_name }}:latest {{ ecr_repository_uri }}/{{ project_name }}-repo:latest
 
             # Login to AWS ECR
             $(aws ecr get-login --no-include-email --region {{ aws_region }})
 
             # Push the image to ECR
-            docker push {{ ecr_repository_uri }}/{{ project_name }}:latest
+            docker push {{ ecr_repository_uri }}{{ project_name }}-repo:latest
