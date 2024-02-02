@@ -1,6 +1,6 @@
 FROM nvidia/cuda:12.3.1-devel-ubuntu20.04
 
-RUN nvidia-smi
+RUN nvcc --version
 
 #ENV CUDA_HOME /usr/local/cuda
 
