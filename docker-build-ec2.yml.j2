@@ -48,4 +48,4 @@ jobs:
             $(aws ecr get-login --no-include-email --region {{ aws_region }})
 
             # Push the image to ECR
-            docker push {{ ecr_repository_uri }}{{ project_name }}-repo:latest
+            docker push {{ ecr_repository_uri }}/{{ project_name }}-repo:latest
