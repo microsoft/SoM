@@ -7,10 +7,9 @@ RUN echo LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 
 # Install Python, pip, git, ninja
 RUN apt-get update && \
-    apt-get install -y python3-pip python3-dev git ninja-build && \
+    apt-get install -y python3-pip python3-dev git ninja-build wget && \
     ln -sf /usr/bin/python3 /usr/bin/python && \
     ln -sf /usr/bin/pip3 /usr/bin/pip
-
 
 # Set the working directory in the container
 WORKDIR /usr/src/app
