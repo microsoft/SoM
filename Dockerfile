@@ -23,8 +23,7 @@ ENV FORCE_CUDA=1
 
 # Install PyTorch with CUDA support and other dependencies
 #RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113 \
-RUN pip install ninja-build \
-    && pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once.git@package \
+RUN pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once.git@package \
     && pip install git+https://github.com/facebookresearch/segment-anything.git \
     && pip install git+https://github.com/UX-Decoder/Semantic-SAM.git@package \
     && cd ops && sh make.sh && cd ..
