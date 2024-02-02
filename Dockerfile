@@ -6,10 +6,10 @@ RUN echo CUDA_HOME=$CUDA_HOME
 RUN echo LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 
 # Install Python, pip, and git
-#RUN apt-get update && \
-#    apt-get install -y python3-pip python3-dev git && \
-#    ln -sf /usr/bin/python3 /usr/bin/python && \
-#    ln -sf /usr/bin/pip3 /usr/bin/pip
+RUN apt-get update && \
+    apt-get install -y python3-pip python3-dev git && \
+    ln -sf /usr/bin/python3 /usr/bin/python && \
+    ln -sf /usr/bin/pip3 /usr/bin/pip
 
 # Set the working directory in the container
 WORKDIR /usr/src/app
