@@ -16,13 +16,15 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           command_timeout: "60m"
-          host: 44.214.91.19
+          host: 3.89.125.128
           username: ubuntu  # Usually 'ubuntu' or 'ec2-user'
           
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           
           script: |
             source activate pytorch
+
+            nvidia-smi
 
             nvcc --version
             echo CUDA_HOME=$CUDA_HOME
@@ -37,7 +39,7 @@ jobs:
             $(aws ecr get-login --no-include-email --region us-east-1)
 
             # Build the image
-            sudo docker build -t openadapt .
+            sudo docker build -t openadapt --gpus all .
             #sudo docker run -d -p 80:80 openadapt
 
             # Tag the image for the ECR repository
