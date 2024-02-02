@@ -14,7 +14,7 @@ COPY . .
 
 ENV FORCE_CUDA=1
 
-# upgrade pip
+# Upgrade pip
 RUN python -m pip install --upgrade pip
 
 # Install PyTorch with CUDA support and other dependencies
@@ -22,7 +22,6 @@ RUN pip install torch torchvision torchaudio --extra-index-url https://download.
     && pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once.git@package \
     && pip install git+https://github.com/facebookresearch/segment-anything.git \
     && pip install git+https://github.com/UX-Decoder/Semantic-SAM.git@package \
-    && pip install gradio \
     && cd ops && bash make.sh && cd ..
 
 # Run download_ckpt.sh to download the pretrained models
