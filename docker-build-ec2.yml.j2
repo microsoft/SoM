@@ -45,7 +45,7 @@ jobs:
             $(aws ecr get-login --no-include-email --region {{ aws_region }})
 
             # Build the image
-            sudo docker build -t {{ project_name }} --gpus all .
+            sudo docker build -t {{ project_name }} .
             #sudo docker run -d -p 80:80 {{ project_name }}
 
             # Tag the image for the ECR repository

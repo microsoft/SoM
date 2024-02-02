@@ -45,7 +45,7 @@ jobs:
             $(aws ecr get-login --no-include-email --region us-east-1)
 
             # Build the image
-            sudo docker build -t openadapt --gpus all .
+            sudo docker build -t openadapt .
             #sudo docker run -d -p 80:80 openadapt
 
             # Tag the image for the ECR repository
