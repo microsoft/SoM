@@ -11,9 +11,9 @@ phases:
       - git fetch --all
       - git checkout feat/deploy
       - echo Building the Docker image...
-      - docker build -t 726461418004.dkr.ecr.us-east-1.amazonaws.com/guiai-app:latest .
+      - docker build -t 726461418004.dkr.ecr.us-east-1.amazonaws.com/openadapt-app:latest .
   post_build:
     commands:
       - echo Pushing the Docker image...
-      - docker push 726461418004.dkr.ecr.us-east-1.amazonaws.com/guiai-app:latest
+      - docker push 726461418004.dkr.ecr.us-east-1.amazonaws.com/openadapt-app:latest
       - echo Build completed on `date`

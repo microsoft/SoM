@@ -632,7 +632,7 @@ def generate_github_actions_workflow__codebuild(codebuild_project_name=Config.PR
 
     # Set up Jinja2 environment
     env = Environment(loader=FileSystemLoader('.'))
-    template = env.get_template('docker-build.yml.j2')
+    template = env.get_template('docker-build-codebuild.yml.j2')
 
     # Render the template with the CodeBuild project name and current branch
     rendered_workflow = template.render(
@@ -644,7 +644,7 @@ def generate_github_actions_workflow__codebuild(codebuild_project_name=Config.PR
     # Write the rendered workflow to a file
     workflows_dir = '.github/workflows'
     os.makedirs(workflows_dir, exist_ok=True)
-    with open(os.path.join(workflows_dir, 'docker-build.yml'), 'w') as file:
+    with open(os.path.join(workflows_dir, 'docker-build-codebuild.yml'), 'w') as file:
         file.write(rendered_workflow)
     logger.info("GitHub Actions workflow file generated successfully.")
 

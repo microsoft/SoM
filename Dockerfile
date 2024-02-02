@@ -1,7 +1,5 @@
-# Use an NVIDIA CUDA base image compatible with your ECS GPU instances
-FROM nvidia/cuda:12.3.1-devel-ubuntu20.04
+iFROM nvidia/cuda:12.3.1-devel-ubuntu20.04
 
-# Set the CUDA_HOME environment variable
 ENV CUDA_HOME /usr/local/cuda
 
 # Install Python, pip, and git
@@ -16,13 +14,12 @@ WORKDIR /usr/src/app
 # Copy the current directory contents into the container at /usr/src/app
 COPY . .
 
-# Install any needed packages specified in requirements.txt
-#RUN pip install --no-cache-dir -r requirements.txt
+# Set FORCE_CUDA if necessary
+ENV FORCE_CUDA=1
 
-#ENV FORCE_CUDA=1
-
-# Install additional dependencies from the README
-RUN pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once.git@package \
+# Install PyTorch with CUDA support and other dependencies
+RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113 \
+    && pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once.git@package \
     && pip install git+https://github.com/facebookresearch/segment-anything.git \
     && pip install git+https://github.com/UX-Decoder/Semantic-SAM.git@package \
     && cd ops && sh make.sh && cd ..
@@ -32,9 +29,6 @@ RUN sh download_ckpt.sh
 
 # Make port 80 available to the world outside this container
 EXPOSE 80
-
-# Define environment variable
-#ENV NAME World
 
 # Run demo_som.py when the container launches
 CMD ["python", "./demo_som.py"]
