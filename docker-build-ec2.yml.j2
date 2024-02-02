@@ -32,24 +32,19 @@ jobs:
             sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
             sudo systemctl restart docker
 
-            nvcc --version
-            echo CUDA_HOME=$CUDA_HOME
-            #export CUDA_HOME=/usr/local/cuda
-
             git clone https://github.com/{{ github_path }}
             cd {{ github_repo }}
             git checkout {{ branch_name }}
-            ls -al
-
-            # Login to AWS ECR
-            $(aws ecr get-login --no-include-email --region {{ aws_region }})
 
             # Build the image
-            sudo docker build -t {{ project_name }} .
+            sudo nvidia-docker build -t {{ project_name }} .
             #sudo docker run -d -p 80:80 {{ project_name }}
 
             # Tag the image for the ECR repository
             docker tag {{ project_name }}:latest {{ ecr_repository_uri }}/{{ project_name }}:latest
+
+            # Login to AWS ECR
+            $(aws ecr get-login --no-include-email --region {{ aws_region }})
 
             # Push the image to ECR
             docker push {{ ecr_repository_uri }}/{{ project_name }}:latest
