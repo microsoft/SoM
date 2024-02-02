@@ -439,10 +439,21 @@ def terminate_ec2_instances():
         for instance_id in instance_ids:
             logger.info(f"Terminating instance: ID - {instance_id}")
 
-    # Wait for instances to terminate before proceeding
+    # Custom wait loop for instances to terminate
     for instance_id in instance_ids:
         instance = ec2_resource.Instance(instance_id)
-        instance.wait_until_terminated()
+        max_wait_attempts = 10
+        wait_interval = 30  # seconds
+
+        for _ in range(max_wait_attempts):
+            instance.reload()
+            if instance.state['Name'] == 'terminated':
+                break
+            time.sleep(wait_interval)
+        else:
+            logger.warning(f"Instance {instance_id} did not terminate within the expected time.")
+
+
     # Detach and delete EBS volumes
     for instance_id in instance_ids:
         instance = ec2_resource.Instance(instance_id)
@@ -464,12 +475,18 @@ def terminate_ec2_instances():
         ec2_client.detach_network_interface(AttachmentId=ni['Attachment']['AttachmentId'])
         ec2_client.delete_network_interface(NetworkInterfaceId=ni['NetworkInterfaceId'])
 
-    # Retry deleting security group
+    # Delete security group
     try:
+        # Attempt to describe the security group to check if it exists
+        ec2_client.describe_security_groups(GroupNames=[Config.AWS_EC2_SECURITY_GROUP])
+        # If it exists, proceed to delete
         ec2_client.delete_security_group(GroupName=Config.AWS_EC2_SECURITY_GROUP)
         logger.info(f"Deleted security group: {Config.AWS_EC2_SECURITY_GROUP}")
     except ClientError as e:
-        logger.error(f"Error deleting security group: {e}")
+        if e.response['Error']['Code'] == 'InvalidGroup.NotFound':
+            logger.info(f"Security group {Config.AWS_EC2_SECURITY_GROUP} does not exist or already deleted.")
+        else:
+            logger.error(f"Error deleting security group: {e}")
 
 def list_ec2_instances_by_tag():
     ec2 = boto3.resource('ec2')

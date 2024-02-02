@@ -1,6 +1,8 @@
-iFROM nvidia/cuda:12.3.1-devel-ubuntu20.04
+FROM nvidia/cuda:12.3.1-devel-ubuntu20.04
 
-ENV CUDA_HOME /usr/local/cuda
+RUN nvidia-smi
+
+#ENV CUDA_HOME /usr/local/cuda
 
 # Install Python, pip, and git
 RUN apt-get update && \
