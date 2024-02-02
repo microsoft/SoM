@@ -1,11 +1,18 @@
 """Deploy SoM to AWS.
 
 Example Usage:
-    1. `cp .env.example` `.env`
-    2. Fill in `.env`
+    1. Create and populate the .env file:
+       echo "AWS_ACCESS_KEY_ID=<your aws access key id>" > .env
+       echo "AWS_SECRET_ACCESS_KEY=<your aws secret access key>" >> .env
+       echo "AWS_REGION=<your aws region>" >> .env
+       echo "GITHUB_OWNER=<your github owner>" >> .env
+       echo "GITHUB_REPO=<your github repo>" >> .env
+       echo "GITHUB_TOKEN=<your github token>" >> .env
+       echo "PROJECT_NAME=<your project name>" >> .env
     3. `pip install client_requirements.txt`
-    4. `python deploy.py configure
-    5. `git add .github/workflows/docker-build.yml && git commit && git push`
+    4. `python deploy.py configure`
+    5. `python deploy.py generate_github_actions_workflow__ec2`
+    5. `git add .github/workflows/docker-build-ec2.yml && git commit && git push`
 
 """
 
@@ -71,7 +78,7 @@ def _run_subprocess(command, log_stdout=False):
             env['AWS_ACCESS_KEY_ID'] = Config.AWS_ACCESS_KEY_ID
             env['AWS_SECRET_ACCESS_KEY'] = Config.AWS_SECRET_ACCESS_KEY
             env['AWS_REGION'] = Config.AWS_REGION
-            logger.info(f"Running AWS command with Access Key ID: {aws_access_key_id}")
+            logger.info(f"Running AWS command with {Config.AWS_ACCESS_KEY_ID=}")
         else:
             env = None
 
@@ -93,11 +100,22 @@ def create_ecs_cluster(cluster_name=f"{Config.PROJECT_NAME}-Cluster"):
         output = json.loads(result.stdout)
         logger.info(f"Cluster created successfully: {json.dumps(output, indent=2)}")
 
-def create_ecr_repository(repo_name=f"{Config.PROJECT_NAME}-Repo"):
-    command = ["aws", "ecr", "create-repository", "--repository-name", repo_name]
-    result = _run_subprocess(command)
-    if result:
-        logger.info(f"ECR repository {repo_name} created successfully.")
+def create_ecr_repository(repo_name=f"{Config.PROJECT_NAME}-repo"):
+    ecr_client = boto3.client('ecr', region_name=Config.AWS_REGION)
+
+    try:
+        # Check if the repository already exists
+        ecr_client.describe_repositories(repositoryNames=[repo_name])
+        logger.info(f"ECR repository {repo_name} already exists.")
+    except ecr_client.exceptions.RepositoryNotFoundException:
+        # If the repository does not exist, create it
+        try:
+            command = ["aws", "ecr", "create-repository", "--repository-name", repo_name]
+            result = _run_subprocess(command)
+            if result:
+                logger.info(f"ECR repository {repo_name} created successfully.")
+        except Exception as e:
+            logger.error(f"Error creating ECR repository: {e}")
 
 def get_ecr_registry_url():
     sts_client = boto3.client('sts', region_name=Config.AWS_REGION)
@@ -316,7 +334,7 @@ def deploy_ec2_instance(
     logger.info(f"New instance created: ID - {new_instance.id}, IP - {new_instance.public_ip_address}")
     return new_instance.id, new_instance.public_ip_address
 
-def configure_ec2_instance(instance_id=None, instance_ip=None):
+def configure_ec2_instance(instance_id=None, instance_ip=None, max_ssh_retries=3, ssh_retry_delay=10, max_cmd_retries=5, cmd_retry_delay=30):
     if not instance_id:
         ec2_instance_id, ec2_instance_ip = deploy_ec2_instance()
     else:
@@ -327,45 +345,67 @@ def configure_ec2_instance(instance_id=None, instance_ip=None):
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    try:
-        ssh_client.connect(hostname=ec2_instance_ip, username='ubuntu', pkey=key)
+    ssh_retries = 0
+    while ssh_retries < max_ssh_retries:
+        try:
+            ssh_client.connect(hostname=ec2_instance_ip, username='ubuntu', pkey=key)
+            break  # Successful SSH connection, break out of the loop
+        except Exception as e:
+            ssh_retries += 1
+            logger.error(f"SSH connection attempt {ssh_retries} failed: {e}")
+            if ssh_retries < max_ssh_retries:
+                logger.info(f"Retrying SSH connection in {ssh_retry_delay} seconds...")
+                time.sleep(ssh_retry_delay)
+            else:
+                logger.error("Maximum SSH connection attempts reached. Aborting.")
+                return
 
-        # Commands to set up the EC2 instance for Docker builds
-        commands = [
-            "sudo apt-get update",
-            "sudo apt-get install -y docker.io",
-            "sudo systemctl start docker",
-            "sudo systemctl enable docker",
-            "sudo usermod -a -G docker ${USER}",
-            "sudo curl -L \"https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose",
-            "sudo chmod +x /usr/local/bin/docker-compose",
-            "sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose",
-            "sudo apt-get install -y awscli",
-            "aws configure set aws_access_key_id " + Config.AWS_ACCESS_KEY_ID,
-            "aws configure set aws_secret_access_key " + Config.AWS_SECRET_ACCESS_KEY,
-            "aws configure set default.region " + Config.AWS_REGION,
-            # Additional CUDA specific installations can be added here if necessary
-        ]
+    # Commands to set up the EC2 instance for Docker builds
+    commands = [
+        "sudo apt-get update",
+        "sudo apt-get install -y docker.io",
+        "sudo systemctl start docker",
+        "sudo systemctl enable docker",
+        "sudo usermod -a -G docker ${USER}",
+        "sudo curl -L \"https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose",
+        "sudo chmod +x /usr/local/bin/docker-compose",
+        "sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose",
+        "sudo apt-get install -y awscli",
+        "aws configure set aws_access_key_id " + Config.AWS_ACCESS_KEY_ID,
+        "aws configure set aws_secret_access_key " + Config.AWS_SECRET_ACCESS_KEY,
+        "aws configure set default.region " + Config.AWS_REGION,
+        # Additional commands can be added here
+    ]
 
-        for command in commands:
+    # Define sensitive keys to obfuscate
+    sensitive_keys = ["AWS_SECRET_ACCESS_KEY"]
+
+    for command in commands:
+        cmd_retries = 0
+        while cmd_retries < max_cmd_retries:
             stdin, stdout, stderr = ssh_client.exec_command(command)
             exit_status = stdout.channel.recv_exit_status()  # Blocking call
 
-            secret_keys = ["Config.AWS_SECRET_ACCESS_KEY"]
-            for secret_key in secret_keys:
-                secret_val = getattr(Config, secret_key)
-                if secret_val in comamnd:
-                    command = command.replace(secret_val, "*" * len(secret_val))
-
             if exit_status == 0:
-                logger.info(f"Executed command: {command}")
+                # Obfuscate sensitive information in log messages
+                log_command = command
+                for key in sensitive_keys:
+                    secret_value = getattr(Config, key, None)
+                    if secret_value and secret_value in command:
+                        log_command = command.replace(secret_value, "*" * len(secret_value))
+                logger.info(f"Executed command: {log_command}")
+                break  # Command executed successfully, break out of the loop
             else:
-                logger.error(f"Error in command: {command}, Exit Status: {exit_status}, Error: {stderr.read()}")
-    except Exception as e:
-        logger.error(f"SSH connection error: {e}")
-    finally:
-        ssh_client.close()
+                error_message = stderr.read()
+                if "Could not get lock" in str(error_message):
+                    cmd_retries += 1
+                    logger.warning(f"dpkg is locked, retrying command in {cmd_retry_delay} seconds... Attempt {cmd_retries}/{max_cmd_retries}")
+                    time.sleep(cmd_retry_delay)
+                else:
+                    logger.error(f"Error in command: {command}, Exit Status: {exit_status}, Error: {error_message}")
+                    break  # Non-dpkg lock error, break out of the loop
 
+    ssh_client.close()
 
 def shutdown_ec2_instances():
     ec2 = boto3.resource('ec2')

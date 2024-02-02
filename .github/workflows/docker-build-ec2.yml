@@ -16,12 +16,14 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           command_timeout: "60m"
-          host: 44.222.111.8
+          host: 44.214.91.19
           username: ubuntu  # Usually 'ubuntu' or 'ec2-user'
           
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           
           script: |
+            source activate pytorch
+
             nvcc --version
             echo CUDA_HOME=$CUDA_HOME
             #export CUDA_HOME=/usr/local/cuda
