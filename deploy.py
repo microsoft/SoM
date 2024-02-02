@@ -230,9 +230,9 @@ def get_or_create_security_group_id():
                     IpPermissions=[
                         {
                             'IpProtocol': 'tcp',
-							'FromPort': 22,
-							'ToPort': 22,
-							'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
+                            'FromPort': 22,
+                            'ToPort': 22,
+                            'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
                         }
                     ]
                 )
