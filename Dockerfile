@@ -20,7 +20,7 @@ ENV FORCE_CUDA=1
 # Upgrade pip
 RUN python -m pip install --upgrade pip
 
-# Install PyTorch with CUDA support and other dependencies
+# Install Python dependencies
 RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu123 \
     && pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once.git@v1.0 \
     && pip install git+https://github.com/facebookresearch/segment-anything.git \

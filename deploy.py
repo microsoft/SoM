@@ -12,6 +12,8 @@ Example Usage:
     2. `pip install client_requirements.txt`
     3. `python deploy.py configure`
     4. `git add .github/workflows/docker-build-ec2.yml && git commit && git push`
+    5. TODO: verify succes
+    6. `python deploy.py terminate_ec2_instances'
 
 """
 
