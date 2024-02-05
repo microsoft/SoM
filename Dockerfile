@@ -25,13 +25,16 @@ RUN pip install torch torchvision torchaudio --extra-index-url https://download.
     && pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once.git@package \
     && pip install git+https://github.com/facebookresearch/segment-anything.git \
     && pip install git+https://github.com/UX-Decoder/Semantic-SAM.git@package \
-    && pip install mpi4py \
     && cd ops && bash make.sh && cd .. \
-    && pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once.git@v1.0
+    && pip install mpi4py
 
 
 # Run download_ckpt.sh to download the pretrained models
 RUN sh download_ckpt.sh
+
+RUN python -c "import seem"
+
+RUN python -m pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once.git@v1.0
 
 # Make port 80 available to the world outside this container
 EXPOSE 80
