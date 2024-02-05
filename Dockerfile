@@ -22,6 +22,7 @@ RUN pip install torch torchvision torchaudio --extra-index-url https://download.
     && pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once.git@package \
     && pip install git+https://github.com/facebookresearch/segment-anything.git \
     && pip install git+https://github.com/UX-Decoder/Semantic-SAM.git@package \
+    && pip insatll 'git+https://github.com/facebookresearch/detectron2.git' \
     && cd ops && bash make.sh && cd ..
 
 # Run download_ckpt.sh to download the pretrained models
