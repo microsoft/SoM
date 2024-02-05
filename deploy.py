@@ -9,10 +9,9 @@ Example Usage:
        echo "GITHUB_REPO=<your github repo>" >> .env
        echo "GITHUB_TOKEN=<your github token>" >> .env
        echo "PROJECT_NAME=<your project name>" >> .env
-    3. `pip install client_requirements.txt`
-    4. `python deploy.py configure`
-    5. `python deploy.py generate_github_actions_workflow__ec2`
-    5. `git add .github/workflows/docker-build-ec2.yml && git commit && git push`
+    2. `pip install client_requirements.txt`
+    3. `python deploy.py configure`
+    4. `git add .github/workflows/docker-build-ec2.yml && git commit && git push`
 
 """
 
@@ -745,6 +744,7 @@ def configure(build_with_codebuild=False, deploy_to_ecs=False):
         create_codebuild_project()
     else:
         configure_ec2_instance()
+        generate_github_actions_workflow__ec2()
 
     if deploy_to_ecs:
         create_ecs_cluster()
