@@ -14,7 +14,7 @@ Usage:
 
     2. Create a virtual environment for deployment:
 
-        python -m venv venv
+        python3.10 -m venv venv
         source venv/bin/activate
         pip install deploy_requirements.txt
 
@@ -28,9 +28,9 @@ Usage:
         git commit -m "add workflow file"
         git push
 
-    5. Wait for the build to succeed in Github actions (see console output for details)
+    5. Wait for the build to succeed in Github actions (see console output for URL)
 
-    6. Open the EC2 gradio url (see console output for details) and test it out.
+    6. Open the gradio interface (see console output for URL) and test it out.
        TODO: client.py
 
     7. Terminate or shutdown EC2 instance to stop incurring charges:
@@ -39,7 +39,7 @@ Usage:
         # or, if you want to shut it down without removing it:
         python deploy.py shutdown_ec2_instance
 
-    8. List all tagged instances with their respective status:
+    8. (optional) List all tagged instances with their respective status:
 
         python deploy.py list_ec2_instances
 
@@ -55,48 +55,61 @@ import subprocess
 import time
 
 from botocore.exceptions import ClientError
-from dotenv import load_dotenv
 from jinja2 import Environment, FileSystemLoader
 from loguru import logger
 from nacl import encoding, public
+from pydantic_settings import BaseSettings
 import boto3
 import fire
 import git
 import paramiko
 import requests
 
-# Load environment variables from .env file
-load_dotenv(".env")
+class Config(BaseSettings):
+    AWS_ACCESS_KEY_ID: str
+    AWS_SECRET_ACCESS_KEY: str
+    AWS_REGION: str
+    GITHUB_OWNER: str
+    GITHUB_REPO: str
+    GITHUB_TOKEN: str
+    OPENAI_API_KEY: str | None = None
+    PROJECT_NAME: str
 
-# TODO: pydantic?
-class Config:
+    AWS_EC2_AMI: str = "ami-0f9c346cdcac09fb5"  # Deep Learning AMI GPU PyTorch 2.0.1 (Ubuntu 20.04) 20230827
+    AWS_EC2_DISK_SIZE: int = 100  # GB
+    #AWS_EC2_INSTANCE_TYPE: str = "p3.2xlarge"  # (V100 16GB $3.06/hr x86_64)
+    AWS_EC2_INSTANCE_TYPE: str = "g4dn.xlarge"  # (T4 16GB $0.526/hr x86_64)
+    AWS_EC2_USER: str = "ubuntu"
 
-    def _get_env(name):
-        val = os.getenv(name)
-        assert val is not None, f"{name=} {val=}"
-        return val
+    class Config:
+        env_file = ".env"
+        env_file_encoding = 'utf-8'
 
-    AWS_ACCESS_KEY_ID = _get_env("AWS_ACCESS_KEY_ID")
-    AWS_SECRET_ACCESS_KEY = _get_env("AWS_SECRET_ACCESS_KEY")
-    AWS_REGION = _get_env("AWS_REGION")
-    GITHUB_OWNER = _get_env("GITHUB_OWNER")
-    GITHUB_REPO = _get_env("GITHUB_REPO")
-    GITHUB_TOKEN = _get_env("GITHUB_TOKEN")
-    OPENAI_API_KEY = _get_env("OPENAI_API_KEY")
-    PROJECT_NAME = _get_env("PROJECT_NAME")
+    @property
+    def AWS_EC2_KEY_NAME(self) -> str:
+        return f"{self.PROJECT_NAME}-key"
 
-    AWS_EC2_AMI = "ami-0f9c346cdcac09fb5"  # Deep Learning AMI GPU PyTorch 2.0.1 (Ubuntu 20.04) 20230827
-                  
-    AWS_EC2_DISK_SIZE = 100  # GB
-    AWS_EC2_INSTANCE_TYPE = "g4dn.xlarge"  # (T4 16GB $0.526/hr x86_64)
-    AWS_EC2_INSTANCE_TYPE = "p3.2xlarge"  # (V100 16GB $3.06/hr x86_64)
-    AWS_EC2_KEY_NAME = f"{PROJECT_NAME}-key"
-    AWS_EC2_KEY_PATH = f"./{AWS_EC2_KEY_NAME}.pem"
-    AWS_EC2_SECURITY_GROUP = f"{PROJECT_NAME}-SecurityGroup"
-    AWS_EC2_USER = "ubuntu"
-    AWS_SSM_ROLE_NAME = f"{PROJECT_NAME}-SSMRole"
-    AWS_SSM_PROFILE_NAME = f"{PROJECT_NAME}-SSMInstanceProfile"
-    GITHUB_PATH = f"{GITHUB_OWNER}/{GITHUB_REPO}"
+    @property
+    def AWS_EC2_KEY_PATH(self) -> str:
+        return f"./{self.AWS_EC2_KEY_NAME}.pem"
+
+    @property
+    def AWS_EC2_SECURITY_GROUP(self) -> str:
+        return f"{self.PROJECT_NAME}-SecurityGroup"
+
+    @property
+    def AWS_SSM_ROLE_NAME(self) -> str:
+        return f"{self.PROJECT_NAME}-SSMRole"
+
+    @property
+    def AWS_SSM_PROFILE_NAME(self) -> str:
+        return f"{self.PROJECT_NAME}-SSMInstanceProfile"
+
+    @property
+    def GITHUB_PATH(self) -> str:
+        return f"{self.GITHUB_OWNER}/{self.GITHUB_REPO}"
+
+config = Config()
 
 def encrypt(public_key: str, secret_value: str) -> str:
     """Encrypt a Unicode string using the public key."""
@@ -125,21 +138,21 @@ def set_github_secret(token: str, repo: str, secret_name: str, secret_value: str
 def set_github_secrets():
     """Set AWS credentials and SSH private key as GitHub Secrets."""
     # Set AWS secrets
-    set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_PATH, 'AWS_ACCESS_KEY_ID', Config.AWS_ACCESS_KEY_ID)
-    set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_PATH, 'AWS_SECRET_ACCESS_KEY', Config.AWS_SECRET_ACCESS_KEY)
-    set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_PATH, 'OPENAI_API_KEY', Config.OPENAI_API_KEY)
+    set_github_secret(config.GITHUB_TOKEN, config.GITHUB_PATH, 'AWS_ACCESS_KEY_ID', config.AWS_ACCESS_KEY_ID)
+    set_github_secret(config.GITHUB_TOKEN, config.GITHUB_PATH, 'AWS_SECRET_ACCESS_KEY', config.AWS_SECRET_ACCESS_KEY)
+    set_github_secret(config.GITHUB_TOKEN, config.GITHUB_PATH, 'OPENAI_API_KEY', config.OPENAI_API_KEY)
 
     # Read the SSH private key from the file
     try:
-        with open(Config.AWS_EC2_KEY_PATH, 'r') as key_file:
+        with open(config.AWS_EC2_KEY_PATH, 'r') as key_file:
             ssh_private_key = key_file.read()
-        set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_PATH, 'SSH_PRIVATE_KEY', ssh_private_key)
+        set_github_secret(config.GITHUB_TOKEN, config.GITHUB_PATH, 'SSH_PRIVATE_KEY', ssh_private_key)
     except IOError as e:
         logger.error(f"Error reading SSH private key file: {e}")
 
-def create_key_pair(key_name=Config.AWS_EC2_KEY_NAME, key_path=Config.AWS_EC2_KEY_PATH):
+def create_key_pair(key_name=config.AWS_EC2_KEY_NAME, key_path=config.AWS_EC2_KEY_PATH):
     """Create a new key pair and save it to a file."""
-    ec2_client = boto3.client('ec2', region_name=Config.AWS_REGION)
+    ec2_client = boto3.client('ec2', region_name=config.AWS_REGION)
     try:
         key_pair = ec2_client.create_key_pair(KeyName=key_name)
         private_key = key_pair['KeyMaterial']
@@ -156,7 +169,7 @@ def create_key_pair(key_name=Config.AWS_EC2_KEY_NAME, key_path=Config.AWS_EC2_KE
         return None
 
 def get_or_create_security_group_id(ports=[22, 6092]):
-    ec2 = boto3.client('ec2', region_name=Config.AWS_REGION)
+    ec2 = boto3.client('ec2', region_name=config.AWS_REGION)
 
     # Construct ip_permissions list
     ip_permissions = [{
@@ -167,9 +180,9 @@ def get_or_create_security_group_id(ports=[22, 6092]):
     } for port in ports]
 
     try:
-        response = ec2.describe_security_groups(GroupNames=[Config.AWS_EC2_SECURITY_GROUP])
+        response = ec2.describe_security_groups(GroupNames=[config.AWS_EC2_SECURITY_GROUP])
         security_group_id = response['SecurityGroups'][0]['GroupId']
-        logger.info(f"Security group '{Config.AWS_EC2_SECURITY_GROUP}' already exists: {security_group_id}")
+        logger.info(f"Security group '{config.AWS_EC2_SECURITY_GROUP}' already exists: {security_group_id}")
 
         for ip_permission in ip_permissions:
             try:
@@ -190,21 +203,21 @@ def get_or_create_security_group_id(ports=[22, 6092]):
             try:
                 # Create the security group
                 response = ec2.create_security_group(
-                    GroupName=Config.AWS_EC2_SECURITY_GROUP,
+                    GroupName=config.AWS_EC2_SECURITY_GROUP,
                     Description='Security group for specified port access',
                     TagSpecifications=[
                         {
                             'ResourceType': 'security-group',
-                            'Tags': [{'Key': 'Name', 'Value': Config.PROJECT_NAME}]
+                            'Tags': [{'Key': 'Name', 'Value': config.PROJECT_NAME}]
                         }
                     ]
                 )
                 security_group_id = response['GroupId']
-                logger.info(f"Created security group '{Config.AWS_EC2_SECURITY_GROUP}' with ID: {security_group_id}")
+                logger.info(f"Created security group '{config.AWS_EC2_SECURITY_GROUP}' with ID: {security_group_id}")
 
                 # Add rules for the given ports
                 ec2.authorize_security_group_ingress(GroupId=security_group_id, IpPermissions=ip_permissions)
-                logger.info("Added inbound rules to allow access on specified ports")
+                logger.info(f"Added inbound rules to allow access on {ports=}")
 
                 return security_group_id
             except ClientError as e:
@@ -215,11 +228,11 @@ def get_or_create_security_group_id(ports=[22, 6092]):
             return None
 
 def deploy_ec2_instance(
-    ami=Config.AWS_EC2_AMI,
-    instance_type=Config.AWS_EC2_INSTANCE_TYPE,
-    project_name=Config.PROJECT_NAME,
-    key_name=Config.AWS_EC2_KEY_NAME,
-    disk_size=Config.AWS_EC2_DISK_SIZE,
+    ami=config.AWS_EC2_AMI,
+    instance_type=config.AWS_EC2_INSTANCE_TYPE,
+    project_name=config.PROJECT_NAME,
+    key_name=config.AWS_EC2_KEY_NAME,
+    disk_size=config.AWS_EC2_DISK_SIZE,
 ):
     """
     Deploy an EC2 instance.
@@ -245,7 +258,7 @@ def deploy_ec2_instance(
     # Check for existing instances
     instances = ec2.instances.filter(
         Filters=[
-            {'Name': 'tag:Name', 'Values': [Config.PROJECT_NAME]},
+            {'Name': 'tag:Name', 'Values': [config.PROJECT_NAME]},
             {'Name': 'instance-state-name', 'Values': ['running', 'pending', 'stopped']}
         ]
     )
@@ -310,7 +323,7 @@ def configure_ec2_instance(instance_id=None, instance_ip=None, max_ssh_retries=1
         ec2_instance_id = instance_id
         ec2_instance_ip = instance_ip  # Ensure instance IP is provided if instance_id is manually passed
 
-    key = paramiko.RSAKey.from_private_key_file(f"{Config.AWS_EC2_KEY_NAME}.pem")
+    key = paramiko.RSAKey.from_private_key_file(f"{config.AWS_EC2_KEY_NAME}.pem")
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
@@ -339,31 +352,18 @@ def configure_ec2_instance(instance_id=None, instance_ip=None, max_ssh_retries=1
         "sudo curl -L \"https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose",
         "sudo chmod +x /usr/local/bin/docker-compose",
         "sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose",
-        "sudo apt-get install -y awscli",
-        "aws configure set aws_access_key_id " + Config.AWS_ACCESS_KEY_ID,
-        "aws configure set aws_secret_access_key " + Config.AWS_SECRET_ACCESS_KEY,
-        "aws configure set default.region " + Config.AWS_REGION,
-        # Additional commands can be added here
     ]
 
-    # Define sensitive keys to obfuscate
-    sensitive_keys = ["AWS_SECRET_ACCESS_KEY"]
-
     for command in commands:
+        logger.info(f"Executing command: {command}")
         cmd_retries = 0
         while cmd_retries < max_cmd_retries:
             stdin, stdout, stderr = ssh_client.exec_command(command)
             exit_status = stdout.channel.recv_exit_status()  # Blocking call
 
             if exit_status == 0:
-                # Obfuscate sensitive information in log messages
-                log_command = command
-                for key in sensitive_keys:
-                    secret_value = getattr(Config, key, None)
-                    if secret_value and secret_value in command:
-                        log_command = command.replace(secret_value, "*" * len(secret_value))
-                logger.info(f"Executed command: {log_command}")
-                break  # Command executed successfully, break out of the loop
+                logger.info(f"Command executed successfully")
+                break
             else:
                 error_message = stderr.read()
                 if "Could not get lock" in str(error_message):
@@ -377,12 +377,12 @@ def configure_ec2_instance(instance_id=None, instance_ip=None, max_ssh_retries=1
     ssh_client.close()
     return ec2_instance_id, ec2_instance_ip
 
-def shutdown_ec2_instance():
+def shutdown_ec2_instance(project_name=config.PROJECT_NAME):
     ec2 = boto3.resource('ec2')
 
     instances = ec2.instances.filter(
         Filters=[
-            {'Name': 'tag:Name', 'Values': [Config.PROJECT_NAME]},
+            {'Name': 'tag:Name', 'Values': [project_name]},
             {'Name': 'instance-state-name', 'Values': ['running']}
         ]
     )
@@ -391,85 +391,34 @@ def shutdown_ec2_instance():
         logger.info(f"Shutting down instance: ID - {instance.id}")
         instance.stop()
 
-def terminate_ec2_instance():
+def terminate_ec2_instance(
+    project_name=config.PROJECT_NAME,
+    security_group_name=config.AWS_EC2_SECURITY_GROUP,
+):
     ec2_resource = boto3.resource('ec2')
     ec2_client = boto3.client('ec2')
 
     # Terminate EC2 instances
     instances = ec2_resource.instances.filter(
         Filters=[
-            {'Name': 'tag:Name', 'Values': [Config.PROJECT_NAME]},
+            {'Name': 'tag:Name', 'Values': [project_name]},
             {'Name': 'instance-state-name', 'Values': ['pending', 'running', 'shutting-down', 'stopped', 'stopping']}
         ]
     )
 
-    instance_ids = [instance.id for instance in instances]
-    if instance_ids:
-        ec2_resource.instances.filter(InstanceIds=instance_ids).terminate()
-        for instance_id in instance_ids:
-            logger.info(f"Terminating instance: ID - {instance_id}")
-
-    # Custom wait loop for instances to terminate
-    for instance_id in instance_ids:
-        instance = ec2_resource.Instance(instance_id)
-        max_wait_attempts = 20  # increased wait attempts
-        wait_interval = 30  # seconds
-
-        for _ in range(max_wait_attempts):
-            instance.reload()
-            if instance.state['Name'] == 'terminated':
-                logger.info(f"Instance {instance_id} terminated successfully.")
-                break
-            time.sleep(wait_interval)
-        else:
-            logger.warning(f"Instance {instance_id} did not terminate within the expected time.")
-
-    # Detach and delete EBS volumes
-    for instance_id in instance_ids:
-        instance = ec2_resource.Instance(instance_id)
-        for volume in instance.volumes.all():
-            if volume.attachments and volume.attachments[0]['InstanceId'] == instance_id:
-                # Check if it's a root volume
-                if volume.attachments[0]['Device'] == instance.root_device_name:
-                    logger.info(f"Skipping root volume {volume.id} for {instance_id}")
-                    continue
-
-                if volume.state == 'in-use':
-                    try:
-                        volume.detach_from_instance(InstanceId=instance_id, Force=True)
-                        logger.info(f"Detached volume: {volume.id} from {instance_id}")
-                    except ClientError as e:
-                        logger.error(f"Error detaching volume {volume.id} from {instance_id}: {e}")
-
-                # Wait until the volume is available before deletion
-                volume.wait_until_available()
-                volume.delete()
-                logger.info(f"Deleted volume: {volume.id}")
-
-    # Check for network interfaces
-    network_interfaces = ec2_client.describe_network_interfaces(
-        #Filters=[{'Name': 'group-id', 'Values': [security_group_id]}]
-    )['NetworkInterfaces']
-    for ni in network_interfaces:
-        # Check if 'Attachment' key exists
-        if 'Attachment' in ni and 'AttachmentId' in ni['Attachment']:
-            attachment_id = ni['Attachment']['AttachmentId']
-            ec2_client.detach_network_interface(AttachmentId=attachment_id)
-            ec2_client.delete_network_interface(NetworkInterfaceId=ni['NetworkInterfaceId'])
-            logger.info(f"Detached and deleted network interface: {ni['NetworkInterfaceId']}")
-        else:
-            logger.info(f"No attachment found for network interface: {ni}, skipping detachment.")
+    for instance in instances:
+        logger.info(f"Terminating instance: ID - {instance.id}")
+        instance.terminate()
+        instance.wait_until_terminated()
+        logger.info(f"Instance {instance.id} terminated successfully.")
 
     # Delete security group
     try:
-        # Attempt to describe the security group to check if it exists
-        ec2_client.describe_security_groups(GroupNames=[Config.AWS_EC2_SECURITY_GROUP])
-        # If it exists, proceed to delete
-        ec2_client.delete_security_group(GroupName=Config.AWS_EC2_SECURITY_GROUP)
-        logger.info(f"Deleted security group: {Config.AWS_EC2_SECURITY_GROUP}")
+        ec2_client.delete_security_group(GroupName=security_group_name)
+        logger.info(f"Deleted security group: {security_group_name}")
     except ClientError as e:
         if e.response['Error']['Code'] == 'InvalidGroup.NotFound':
-            logger.info(f"Security group {Config.AWS_EC2_SECURITY_GROUP} does not exist or already deleted.")
+            logger.info(f"Security group {security_group_name} does not exist or already deleted.")
         else:
             logger.error(f"Error deleting security group: {e}")
 
@@ -477,7 +426,7 @@ def list_ec2_instances():
     ec2 = boto3.resource('ec2')
 
     instances = ec2.instances.filter(
-        Filters=[{'Name': 'tag:Name', 'Values': [Config.PROJECT_NAME]}]
+        Filters=[{'Name': 'tag:Name', 'Values': [config.PROJECT_NAME]}]
     )
 
     for instance in instances:
@@ -496,10 +445,10 @@ def generate_github_actions_workflow():
     rendered_workflow = template.render(
         branch_name=current_branch,
         host=host,
-        username=Config.AWS_EC2_USER,
-        project_name=Config.PROJECT_NAME,
-        github_path=Config.GITHUB_PATH,
-        github_repo=Config.GITHUB_REPO,
+        username=config.AWS_EC2_USER,
+        project_name=config.PROJECT_NAME,
+        github_path=config.GITHUB_PATH,
+        github_repo=config.GITHUB_REPO,
     )
 
     # Write the rendered workflow to a file
@@ -515,7 +464,7 @@ def get_current_git_branch():
     return branch
 
 def print_github_actions_url():
-    url = f"https://github.com/{Config.GITHUB_OWNER}/{Config.GITHUB_REPO}/actions"
+    url = f"https://github.com/{config.GITHUB_OWNER}/{config.GITHUB_REPO}/actions"
     logger.info(f"GitHub Actions URL: {url}")
 
 def print_gradio_server_url(ip_address):
