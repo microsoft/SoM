@@ -28,15 +28,15 @@ RUN pip install torch torchvision torchaudio --extra-index-url https://download.
     && cd ops && bash make.sh && cd .. \
     && pip install mpi4py
 
-
-# Run download_ckpt.sh to download the pretrained models
+# Download pretrained models
 RUN sh download_ckpt.sh
 
 # Make port 6092 available to the world outside this container
 EXPOSE 6092
 
-# Make server accessible outside 127.0.0.1
+# Make Gradio server accessible outside 127.0.0.1
 ENV GRADIO_SERVER_NAME="0.0.0.0"
 
 # Run demo_som.py when the container launches
-CMD ["python", "./demo_som.py"]
+#CMD ["python", "./demo_som.py"]
+CMD ["python", "./demo_gpt4v_som.py"]

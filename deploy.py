@@ -1,19 +1,47 @@
-"""Deploy SoM to AWS.
+"""Deploy SoM to AWS EC2.
 
-Example Usage:
+Usage:
+
     1. Create and populate the .env file:
-       echo "AWS_ACCESS_KEY_ID=<your aws access key id>" > .env
-       echo "AWS_SECRET_ACCESS_KEY=<your aws secret access key>" >> .env
-       echo "AWS_REGION=<your aws region>" >> .env
-       echo "GITHUB_OWNER=<your github owner>" >> .env
-       echo "GITHUB_REPO=<your github repo>" >> .env
-       echo "GITHUB_TOKEN=<your github token>" >> .env
-       echo "PROJECT_NAME=<your project name>" >> .env
-    2. `pip install client_requirements.txt`
-    3. `python deploy.py configure`
-    4. `git add .github/workflows/docker-build-ec2.yml && git commit && git push`
-    5. TODO: verify succes
-    6. `python deploy.py terminate_ec2_instances'
+
+        echo "AWS_ACCESS_KEY_ID=<your aws access key id>" > .env
+        echo "AWS_SECRET_ACCESS_KEY=<your aws secret access key>" >> .env
+        echo "AWS_REGION=<your aws region>" >> .env
+        echo "GITHUB_OWNER=<your github owner>" >> .env
+        echo "GITHUB_REPO=<your github repo>" >> .env
+        echo "GITHUB_TOKEN=<your github token>" >> .env
+        echo "PROJECT_NAME=<your project name>" >> .env
+
+    2. Create a virtual environment for deployment:
+
+        python -m venv venv
+        source venv/bin/activate
+        pip install deploy_requirements.txt
+
+    3. Run the deployment script:
+
+        python deploy.py run
+
+    4. Commit the newly generated github workflow file:
+
+        git add .github/workflows/docker-build-ec2.yml
+        git commit -m "add workflow file"
+        git push
+
+    5. Wait for the build to succeed in Github actions (see console output for details)
+
+    6. Open the EC2 gradio url (see console output for details) and test it out.
+       TODO: client.py
+
+    7. Terminate or shutdown EC2 instance to stop incurring charges:
+
+        python deploy.py terminate_ec2_instance
+        # or, if you want to shut it down without removing it:
+        python deploy.py shutdown_ec2_instance
+
+    8. List all tagged instances with their respective status:
+
+        python deploy.py list_ec2_instances
 
 """
 
@@ -56,13 +84,11 @@ class Config:
     GITHUB_TOKEN = _get_env("GITHUB_TOKEN")
     PROJECT_NAME = _get_env("PROJECT_NAME")
 
-    #"ami-0a8dada81f29ad054"
     AWS_EC2_AMI = "ami-0f9c346cdcac09fb5"  # Deep Learning AMI GPU PyTorch 2.0.1 (Ubuntu 20.04) 20230827
                   
-    # "p3.2xlarge" (V100 16GB $3.06/hr x86_64)
-    # "g5g.xlarge" (T4G 16GB $0.42/hr ARM64)
     AWS_EC2_DISK_SIZE = 100  # GB
-    AWS_EC2_INSTANCE_TYPE = "p3.2xlarge"
+    AWS_EC2_INSTANCE_TYPE = "g4dn.xlarge"  # (T4 16GB $0.526/hr x86_64)
+    AWS_EC2_INSTANCE_TYPE = "p3.2xlarge"  # (V100 16GB $3.06/hr x86_64)
     AWS_EC2_KEY_NAME = f"{PROJECT_NAME}-key"
     AWS_EC2_KEY_PATH = f"./{AWS_EC2_KEY_NAME}.pem"
     AWS_EC2_SECURITY_GROUP = f"{PROJECT_NAME}-SecurityGroup"
@@ -70,59 +96,6 @@ class Config:
     AWS_SSM_ROLE_NAME = f"{PROJECT_NAME}-SSMRole"
     AWS_SSM_PROFILE_NAME = f"{PROJECT_NAME}-SSMInstanceProfile"
     GITHUB_PATH = f"{GITHUB_OWNER}/{GITHUB_REPO}"
-
-def _run_subprocess(command, log_stdout=False):
-    try:
-        # Prepend AWS credentials for AWS CLI commands
-        if command[0].startswith('aws'):
-            env = os.environ.copy()
-            env['AWS_ACCESS_KEY_ID'] = Config.AWS_ACCESS_KEY_ID
-            env['AWS_SECRET_ACCESS_KEY'] = Config.AWS_SECRET_ACCESS_KEY
-            env['AWS_REGION'] = Config.AWS_REGION
-            logger.info(f"Running AWS command with {Config.AWS_ACCESS_KEY_ID=}")
-        else:
-            env = None
-
-        logger.info(f"Running command: {' '.join(command)}")
-        result = subprocess.run(command, capture_output=True, text=True, check=True, env=env)
-
-        if log_stdout:
-            logger.info(result.stdout)
-
-        return result
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Command failed: {e.stderr}")
-        return None
-
-def create_ecs_cluster(cluster_name=f"{Config.PROJECT_NAME}-Cluster"):
-    command = ["aws", "ecs", "create-cluster", "--cluster-name", cluster_name]
-    result = _run_subprocess(command, log_stdout=True)
-    if result:
-        output = json.loads(result.stdout)
-        logger.info(f"Cluster created successfully: {json.dumps(output, indent=2)}")
-
-def create_ecr_repository(repo_name=f"{Config.PROJECT_NAME}-repo"):
-    ecr_client = boto3.client('ecr', region_name=Config.AWS_REGION)
-
-    try:
-        # Check if the repository already exists
-        ecr_client.describe_repositories(repositoryNames=[repo_name])
-        logger.info(f"ECR repository {repo_name} already exists.")
-    except ecr_client.exceptions.RepositoryNotFoundException:
-        # If the repository does not exist, create it
-        try:
-            command = ["aws", "ecr", "create-repository", "--repository-name", repo_name]
-            result = _run_subprocess(command)
-            if result:
-                logger.info(f"ECR repository {repo_name} created successfully.")
-        except Exception as e:
-            logger.error(f"Error creating ECR repository: {e}")
-
-def get_ecr_registry_url():
-    sts_client = boto3.client('sts', region_name=Config.AWS_REGION)
-    account_id = sts_client.get_caller_identity()["Account"]
-    region = Config.AWS_REGION
-    return f"{account_id}.dkr.ecr.{region}.amazonaws.com"
 
 def encrypt(public_key: str, secret_value: str) -> str:
     """Encrypt a Unicode string using the public key."""
@@ -180,7 +153,7 @@ def create_key_pair(key_name=Config.AWS_EC2_KEY_NAME, key_path=Config.AWS_EC2_KE
         logger.error(f"Error creating key pair: {e}")
         return None
 
-def get_or_create_security_group_id(ports=[22, 80, 6092]):
+def get_or_create_security_group_id(ports=[22, 6092]):
     ec2 = boto3.client('ec2', region_name=Config.AWS_REGION)
 
     try:
@@ -399,8 +372,9 @@ def configure_ec2_instance(instance_id=None, instance_ip=None, max_ssh_retries=3
                     break  # Non-dpkg lock error, break out of the loop
 
     ssh_client.close()
+    return ec2_instance_id, ec2_instance_ip
 
-def shutdown_ec2_instances():
+def shutdown_ec2_instance():
     ec2 = boto3.resource('ec2')
 
     instances = ec2.instances.filter(
@@ -414,7 +388,7 @@ def shutdown_ec2_instances():
         logger.info(f"Shutting down instance: ID - {instance.id}")
         instance.stop()
 
-def terminate_ec2_instances():
+def terminate_ec2_instance():
     ec2_resource = boto3.resource('ec2')
     ec2_client = boto3.client('ec2')
 
@@ -481,7 +455,7 @@ def terminate_ec2_instances():
         else:
             logger.error(f"Error deleting security group: {e}")
 
-def list_ec2_instances_by_tag():
+def list_ec2_instances():
     ec2 = boto3.resource('ec2')
 
     instances = ec2.instances.filter(
@@ -491,7 +465,7 @@ def list_ec2_instances_by_tag():
     for instance in instances:
         logger.info(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
 
-def generate_github_actions_workflow__ec2():
+def generate_github_actions_workflow():
     current_branch = get_current_git_branch()
 
     _, host = deploy_ec2_instance()
@@ -499,8 +473,6 @@ def generate_github_actions_workflow__ec2():
     # Set up Jinja2 environment
     env = Environment(loader=FileSystemLoader('.'))
     template = env.get_template('docker-build-ec2.yml.j2')
-
-    ecr_repository_uri = get_ecr_registry_url()
 
     # Render the template with the current branch
     rendered_workflow = template.render(
@@ -510,8 +482,6 @@ def generate_github_actions_workflow__ec2():
         project_name=Config.PROJECT_NAME,
         github_path=Config.GITHUB_PATH,
         github_repo=Config.GITHUB_REPO,
-        ecr_repository_uri=ecr_repository_uri,
-        aws_region=Config.AWS_REGION,
     )
 
     # Write the rendered workflow to a file
@@ -521,266 +491,26 @@ def generate_github_actions_workflow__ec2():
         file.write(rendered_workflow)
     logger.info("GitHub Actions EC2 workflow file generated successfully.")
 
-def get_repo_details(remote_name="origin"):
-    repo = git.Repo(search_parent_directories=True)
-    remote_url = repo.remote(remote_name).url
-    owner, repo_name = remote_url.split('/')[-2:]
-    repo_name = repo_name.replace('.git', '')  # Remove .git from repo name
-    return owner, repo_name
-
-def create_codebuild_iam_role(role_name=f"{Config.PROJECT_NAME}-CodeBuildServiceRole"):
-    iam = boto3.client('iam')
-    assume_role_policy = {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Principal": {"Service": "codebuild.amazonaws.com"},
-                "Action": "sts:AssumeRole"
-            }
-        ]
-    }
-
-    policy_arns = [
-        "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess",
-        "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
-    ]
-
-    # Create or retrieve the role
-    try:
-        role = iam.create_role(
-            RoleName=role_name,
-            AssumeRolePolicyDocument=json.dumps(assume_role_policy),
-            Tags=[{'Key': 'Name', 'Value': Config.PROJECT_NAME}]
-        )
-        role_arn = role['Role']['Arn']
-        logger.info("IAM role created")
-    except iam.exceptions.EntityAlreadyExistsException:
-        logger.info("IAM role already exists")
-        role = iam.get_role(RoleName=role_name)
-        role_arn = role['Role']['Arn']
-
-    # Attach necessary policies to the role
-    for policy_arn in policy_arns:
-        iam.attach_role_policy(
-            RoleName=role_name,
-            PolicyArn=policy_arn
-        )
-        logger.info(f"Attached policy {policy_arn} to role {role_name}")
-
-    return role_arn
-
-def create_codebuild_project(project_name=Config.PROJECT_NAME, docker_buildspec="buildspec.yml"):
-    owner, repo_name = get_repo_details()
-    service_role_arn = create_codebuild_iam_role()
-
-    codebuild = boto3.client('codebuild')
-
-    # Read the buildspec file content
-    with open(docker_buildspec, 'r') as file:
-        buildspec_content = file.read()
-
-    try:
-        # Try to delete the project if it exists
-        codebuild.delete_project(name=project_name)
-        logger.info(f"Existing CodeBuild project '{project_name}' deleted.")
-    except codebuild.exceptions.ResourceNotFoundException:
-        # If the project does not exist, just proceed
-        logger.info(f"CodeBuild project '{project_name}' does not exist. Proceeding to create a new one.")
-
-    try:
-        # Create a new CodeBuild project
-        response = codebuild.create_project(
-            name=project_name,
-            source={
-                "type": "GITHUB",
-                "location": f"https://github.com/{owner}/{repo_name}.git",
-                "buildspec": buildspec_content  # Embed buildspec content
-            },
-            artifacts={"type": "NO_ARTIFACTS"},
-            environment={
-                "type": "LINUX_GPU_CONTAINER",
-                "image": "aws/codebuild/standard:5.0",  # Use an image that supports CUDA
-                "computeType": "BUILD_GENERAL1_LARGE",
-                "environmentVariables": [{"name": "DOCKER_BUILDKIT", "value": "1"}]
-            },
-            serviceRole=service_role_arn,
-            tags=[{"key": "Name", "value": Config.PROJECT_NAME}],
-        )
-        logger.info(f"New CodeBuild project '{project_name}' created: {response}")
-    except Exception as e:
-        logger.error(f"Error creating CodeBuild project '{project_name}': {e}")
-
-def generate_buildspec(image_name=f"{Config.PROJECT_NAME}-app", ecr_repository_uri=None):
-    if not ecr_repository_uri:
-        ecr_repository_uri = get_ecr_registry_url()
-
-    # Set up Jinja2 environment
-    env = Environment(loader=FileSystemLoader('.'))
-    template = env.get_template('buildspec.yml.j2')
-
-    # Render the template
-    rendered_buildspec = template.render(
-        aws_region=Config.AWS_REGION,
-        branch_name=get_current_git_branch(),
-        ecr_repository_uri=ecr_repository_uri, 
-        image_name=image_name
-    )
-
-    # Write the rendered buildspec to a file
-    with open('buildspec.yml', 'w') as file:
-        file.write(rendered_buildspec)
-    logger.info("buildspec.yml generated successfully.")
-
 def get_current_git_branch():
     repo = git.Repo(search_parent_directories=True)
     branch = repo.active_branch.name
     return branch
 
-def generate_github_actions_workflow__codebuild(codebuild_project_name=Config.PROJECT_NAME):
-    current_branch = get_current_git_branch()
+def print_github_actions_url():
+    url = f"https://github.com/{Config.GITHUB_OWNER}/{Config.GITHUB_REPO}/actions"
+    logger.info(f"GitHub Actions URL: {url}")
 
-    # Set up Jinja2 environment
-    env = Environment(loader=FileSystemLoader('.'))
-    template = env.get_template('docker-build-codebuild.yml.j2')
+def print_gradio_server_url(ip_address):
+    url = f"http://{ip_address}:6092"  # TODO: make port configurable
+    logger.info(f"Gradio Server URL: {url}")
 
-    # Render the template with the CodeBuild project name and current branch
-    rendered_workflow = template.render(
-        aws_region=Config.AWS_REGION,
-        codebuild_project_name=codebuild_project_name,
-        branch_name=current_branch
-    )
-
-    # Write the rendered workflow to a file
-    workflows_dir = '.github/workflows'
-    os.makedirs(workflows_dir, exist_ok=True)
-    with open(os.path.join(workflows_dir, 'docker-build-codebuild.yml'), 'w') as file:
-        file.write(rendered_workflow)
-    logger.info("GitHub Actions workflow file generated successfully.")
-
-def get_quota_usage(
-    # Service code for AWS CodeBuild
-    service_code='codebuild',
-    # Quota code for maximum number of build projects
-    quota_code='L-ACCF6C0D',
-):
-
-    service_quotas = boto3.client('service-quotas', region_name=Config.AWS_REGION)
-
-    # Get information about the quota
-    quota_info = service_quotas.get_service_quota(
-        ServiceCode=service_code,
-        QuotaCode=quota_code
-    )
-
-    quota_value = quota_info['Quota']['Value']
-    usage_info = service_quotas.get_usage_for_quota(
-        ServiceCode=service_code,
-        QuotaCode=quota_code
-    )
-    
-    usage = usage_info['Usage'][0]['Value'] if usage_info['Usage'] else 'Not available'
-
-    return {
-        'QuotaValue': quota_value,
-        'CurrentUsage': usage
-    }
-
-def get_quota_value(
-    # Service code for AWS CodeBuild
-    service_code='codebuild',
-    # Quota code for maximum number of build projects
-    quota_code='L-ACCF6C0D',
-):
-
-    # Create a Service Quotas client
-    service_quotas = boto3.client('service-quotas', region_name=Config.AWS_REGION)
-
-    # Retrieve the quota information
-    try:
-        quota = service_quotas.get_service_quota(
-            ServiceCode=service_code,
-            QuotaCode=quota_code
-        )
-        return quota
-    except service_quotas.exceptions.NoSuchResourceException:
-        print(f"No such quota found for service code: {service_code} and quota code: {quota_code}")
-        return None
-
-def get_codebuild_usage():
-    # Create a CodeBuild client
-    codebuild = boto3.client('codebuild', region_name=config.AWS_REGION)
-
-    # Calculate start time for build counts (e.g., last 24 hours)
-    start_time = datetime.utcnow() - timedelta(hours=24)
-    build_count = 0
-
-    # Get the list of build IDs for the project
-    response = codebuild.list_builds_for_project(projectName=Config.PROJECT_NAME)
-    build_ids = response.get('ids', [])
-    logger.info(f"{build_ids=}")
-
-    # Retrieve detailed information for each build ID
-    builds_info = codebuild.batch_get_builds(ids=build_ids)['builds']
-
-    # Count the number of builds started within the last 24 hours
-    for build in builds_info:
-        if build['startTime'] > start_time:
-            build_count += 1
-
-    return build_count
-
-def configure(build_with_codebuild=False, deploy_to_ecs=False):
-    create_ecr_repository()
+def run():
     set_github_secrets()
-
-    if build_with_codebuild:
-        create_codebuild_project()
-    else:
-        configure_ec2_instance()
-        generate_github_actions_workflow__ec2()
-
-    if deploy_to_ecs:
-        create_ecs_cluster()
+    instance_id, instance_ip = configure_ec2_instance()
+    assert instance_ip, f"invalid {instance_ip=}"
+    generate_github_actions_workflow()
+    print_github_actions_url()
+    print_gradio_server_url(instance_ip)
 
 if __name__ == "__main__":
     fire.Fire()
-
-
-# SCRATCH
-
-# local build only
-"""
-def build_docker_image(image_name, tag):
-    full_image_name = f"{image_name}:{tag}"
-    command = ["docker", "build", "-t", full_image_name, "."]
-    result = _run_subprocess(command)
-    if result:
-        logger.info(f"Docker image {full_image_name} built successfully.")
-
-
-def authenticate_ecr(region):
-    get_login_command = ["aws", "ecr", "get-login-password", "--region", region]
-    login_password_result = _run_subprocess(get_login_command, log_stdout=True)
-
-    if login_password_result:
-        login_password = login_password_result.stdout.strip()
-        login_command = ["docker", "login", "--username", "AWS", "--password", login_password]
-        login_result = _run_subprocess(login_command)
-        if login_result:
-            logger.info("Authenticated with ECR successfully.")
-
-def push_docker_image(repo_uri, image_name, tag):
-    full_image_name = f"{image_name}:{tag}"
-    remote_image_name = f"{repo_uri}:{tag}"
-
-    # Tagging the image
-    tag_command = ["docker", "tag", full_image_name, remote_image_name]
-    tag_result = run_subprocess(tag_command)
-    if tag_result:
-        # Pushing the image
-        push_command = ["docker", "push", remote_image_name]
-        push_result = _run_subprocess(push_command)
-        if push_result:
-            logger.info(f"Docker image {remote_image_name} pushed to ECR successfully.")
-"""
