@@ -26,7 +26,7 @@ RUN pip install torch torchvision torchaudio --extra-index-url https://download.
     && pip install git+https://github.com/facebookresearch/segment-anything.git \
     && pip install git+https://github.com/UX-Decoder/Semantic-SAM.git@package \
     && cd ops && bash make.sh && cd .. \
-    && pip install mpi4py
+    && pip install mpi4py \
     && pip install openai
 
 # Download pretrained models

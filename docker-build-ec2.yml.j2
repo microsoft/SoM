@@ -35,7 +35,7 @@ jobs:
             sudo docker rm {{ project_name }}-container || true
 
             # Build the image
-            sudo nvidia-docker build -t {{ project_name }} .
+            sudo nvidia-docker build -t {{ project_name }} . || exit 1
 
             # Run the image
             sudo docker run -d -p 6092:6092 --gpus all --name {{ project_name }}-container \
