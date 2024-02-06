@@ -121,7 +121,7 @@ def inference(image, slider, mode, alpha, label_mode, anno_mode, *args, **kwargs
 
         return output
 
-class ImageMask(gr.components.Sketchpad):
+class ImageMask(gr.templates.Sketchpad):
     """
     Sets: source="canvas", tool="sketch"
     """
