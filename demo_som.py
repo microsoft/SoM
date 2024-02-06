@@ -126,8 +126,6 @@ class ImageMask(gr.templates.Sketchpad):
     Sets: source="canvas", tool="sketch"
     """
 
-    is_template = True
-
     def __init__(self, **kwargs):
         super().__init__(sources=["upload"], interactive=True, **kwargs)
 
@@ -139,7 +137,7 @@ launch app
 '''
 
 demo = gr.Blocks()
-image = ImageMask(label="Input", type="pil", brush_radius=20.0, brush_color="#FFFFFF")
+image = ImageMask(label="Input", type="pil")
 slider = gr.Slider(1, 3, value=2, label="Granularity", info="Choose in [1, 1.5), [1.5, 2.5), [2.5, 3] for [seem, semantic-sam (multi-level), sam]")
 mode = gr.Radio(['Automatic', 'Interactive', ], value='Automatic', label="Segmentation Mode")
 image_out = gr.Image(label="Auto generation",type="pil")
