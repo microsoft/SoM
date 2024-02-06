@@ -121,7 +121,7 @@ def inference(image, slider, mode, alpha, label_mode, anno_mode, *args, **kwargs
 
         return output
 
-class ImageMask(gr.components.Image):
+class ImageMask(gr.components.Sketchpad):
     """
     Sets: source="canvas", tool="sketch"
     """
@@ -129,7 +129,7 @@ class ImageMask(gr.components.Image):
     is_template = True
 
     def __init__(self, **kwargs):
-        super().__init__(sources=["upload"], tool="sketch", interactive=True, **kwargs)
+        super().__init__(sources=["upload"], interactive=True, **kwargs)
 
     def preprocess(self, x):
         return super().preprocess(x)
