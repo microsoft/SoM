@@ -33,7 +33,8 @@ Usage:
     5. Wait for the build to succeed in Github actions (see console output for URL)
 
     6. Open the gradio interface (see console output for URL) and test it out.
-       TODO: client.py
+       Note that it may take a minute for the interace to become available.
+       Click on "Use via API" at the bottom of the page for example client code.
 
     7. Terminate or shutdown EC2 instance to stop incurring charges:
 

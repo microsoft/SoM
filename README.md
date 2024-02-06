@@ -161,4 +161,7 @@ If you find our work helpful for your research, please consider citing the follo
 
 ## Deploy to AWS
 
-See `deploy.py`.
+To deploy SoM to EC2 on AWS via Github Actions:
+
+1. Fork this repository and clone your fork to your local machine.
+2. Follow the instructions at the top of `deploy.py`.
