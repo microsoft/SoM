@@ -22,7 +22,7 @@ RUN python -m pip install --upgrade pip
 
 # Install Python dependencies
 RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu123 \
-    && pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once.git@package \
+    && pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once.git@33f2c898fdc8d7c95dda014a4b9ebe4e413dbb2b \
     && pip install git+https://github.com/facebookresearch/segment-anything.git \
     && pip install git+https://github.com/UX-Decoder/Semantic-SAM.git@package \
     && cd ops && bash make.sh && cd .. \
@@ -31,10 +31,6 @@ RUN pip install torch torchvision torchaudio --extra-index-url https://download.
 
 # Run download_ckpt.sh to download the pretrained models
 RUN sh download_ckpt.sh
-
-RUN python -c "import seem"
-
-RUN python -m pip install git+https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once.git@v1.0
 
 # Make port 80 available to the world outside this container
 EXPOSE 80
