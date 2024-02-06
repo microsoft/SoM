@@ -156,30 +156,31 @@ def create_key_pair(key_name=Config.AWS_EC2_KEY_NAME, key_path=Config.AWS_EC2_KE
 def get_or_create_security_group_id(ports=[22, 6092]):
     ec2 = boto3.client('ec2', region_name=Config.AWS_REGION)
 
+    # Construct ip_permissions list
+    ip_permissions = [{
+        'IpProtocol': 'tcp',
+        'FromPort': port,
+        'ToPort': port,
+        'IpRanges': [{'CidrIp': '0.0.0.0/0'}]
+    } for port in ports]
+
     try:
         response = ec2.describe_security_groups(GroupNames=[Config.AWS_EC2_SECURITY_GROUP])
         security_group_id = response['SecurityGroups'][0]['GroupId']
         logger.info(f"Security group '{Config.AWS_EC2_SECURITY_GROUP}' already exists: {security_group_id}")
 
-        for port in ports:
+        for ip_permission in ip_permissions:
             try:
                 ec2.authorize_security_group_ingress(
                     GroupId=security_group_id,
-                    IpPermissions=[
-                        {
-                            'IpProtocol': 'tcp',
-                            'FromPort': port,
-                            'ToPort': port,
-                            'IpRanges': [{'CidrIp': '0.0.0.0/0'}]
-                        }
-                    ]
+                    IpPermissions=[ip_permission]
                 )
-                logger.info(f"Added inbound rule to allow TCP traffic on port {port} from any IP")
+                logger.info(f"Added inbound rule to allow TCP traffic on port {ip_permission['FromPort']} from any IP")
             except ClientError as e:
                 if e.response['Error']['Code'] == 'InvalidPermission.Duplicate':
-                    logger.info(f"Rule for port {port} already exists")
+                    logger.info(f"Rule for port {ip_permission['FromPort']} already exists")
                 else:
-                    logger.error(f"Error adding rule for port {port}: {e}")
+                    logger.error(f"Error adding rule for port {ip_permission['FromPort']}: {e}")
 
         return security_group_id
     except ClientError as e:
@@ -409,30 +410,39 @@ def terminate_ec2_instance():
     # Custom wait loop for instances to terminate
     for instance_id in instance_ids:
         instance = ec2_resource.Instance(instance_id)
-        max_wait_attempts = 10
+        max_wait_attempts = 20  # increased wait attempts
         wait_interval = 30  # seconds
 
         for _ in range(max_wait_attempts):
             instance.reload()
             if instance.state['Name'] == 'terminated':
+                logger.info(f"Instance {instance_id} terminated successfully.")
                 break
             time.sleep(wait_interval)
         else:
             logger.warning(f"Instance {instance_id} did not terminate within the expected time.")
 
-
     # Detach and delete EBS volumes
     for instance_id in instance_ids:
         instance = ec2_resource.Instance(instance_id)
         for volume in instance.volumes.all():
-            if volume.state == 'in-use':
-                volume.detach_from_instance(InstanceId=instance_id, Force=True)
-                logger.info(f"Detached volume: {volume.id} from {instance_id}")
+            if volume.attachments and volume.attachments[0]['InstanceId'] == instance_id:
+                # Check if it's a root volume
+                if volume.attachments[0]['Device'] == instance.root_device_name:
+                    logger.info(f"Skipping root volume {volume.id} for {instance_id}")
+                    continue
 
-            # Wait until the volume is available before deletion
-            volume.wait_until_available()
-            volume.delete()
-            logger.info(f"Deleted volume: {volume.id}")
+                if volume.state == 'in-use':
+                    try:
+                        volume.detach_from_instance(InstanceId=instance_id, Force=True)
+                        logger.info(f"Detached volume: {volume.id} from {instance_id}")
+                    except ClientError as e:
+                        logger.error(f"Error detaching volume {volume.id} from {instance_id}: {e}")
+
+                # Wait until the volume is available before deletion
+                volume.wait_until_available()
+                volume.delete()
+                logger.info(f"Deleted volume: {volume.id}")
 
     # Check for network interfaces
     network_interfaces = ec2_client.describe_network_interfaces(
