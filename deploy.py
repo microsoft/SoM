@@ -118,6 +118,7 @@ def encrypt(public_key: str, secret_value: str) -> str:
 
 def set_github_secret(token: str, repo: str, secret_name: str, secret_value: str):
     """Set a secret in the GitHub repository."""
+    secret_value = secret_value or ""
     headers = {
         "Authorization": f"token {token}",
         "Accept": "application/vnd.github.v3+json"
