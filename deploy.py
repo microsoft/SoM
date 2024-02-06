@@ -82,6 +82,7 @@ class Config:
     GITHUB_OWNER = _get_env("GITHUB_OWNER")
     GITHUB_REPO = _get_env("GITHUB_REPO")
     GITHUB_TOKEN = _get_env("GITHUB_TOKEN")
+    OPENAI_API_KEY = _get_env("OPENAI_API_KEY")
     PROJECT_NAME = _get_env("PROJECT_NAME")
 
     AWS_EC2_AMI = "ami-0f9c346cdcac09fb5"  # Deep Learning AMI GPU PyTorch 2.0.1 (Ubuntu 20.04) 20230827
@@ -126,6 +127,7 @@ def set_github_secrets():
     # Set AWS secrets
     set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_PATH, 'AWS_ACCESS_KEY_ID', Config.AWS_ACCESS_KEY_ID)
     set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_PATH, 'AWS_SECRET_ACCESS_KEY', Config.AWS_SECRET_ACCESS_KEY)
+    set_github_secret(Config.GITHUB_TOKEN, Config.GITHUB_PATH, 'OPENAI_API_KEY', Config.OPENAI_API_KEY)
 
     # Read the SSH private key from the file
     try:
@@ -301,7 +303,7 @@ def deploy_ec2_instance(
     logger.info(f"New instance created: ID - {new_instance.id}, IP - {new_instance.public_ip_address}")
     return new_instance.id, new_instance.public_ip_address
 
-def configure_ec2_instance(instance_id=None, instance_ip=None, max_ssh_retries=3, ssh_retry_delay=10, max_cmd_retries=5, cmd_retry_delay=30):
+def configure_ec2_instance(instance_id=None, instance_ip=None, max_ssh_retries=10, ssh_retry_delay=10, max_cmd_retries=10, cmd_retry_delay=30):
     if not instance_id:
         ec2_instance_id, ec2_instance_ip = deploy_ec2_instance()
     else:
@@ -449,8 +451,14 @@ def terminate_ec2_instance():
         #Filters=[{'Name': 'group-id', 'Values': [security_group_id]}]
     )['NetworkInterfaces']
     for ni in network_interfaces:
-        ec2_client.detach_network_interface(AttachmentId=ni['Attachment']['AttachmentId'])
-        ec2_client.delete_network_interface(NetworkInterfaceId=ni['NetworkInterfaceId'])
+        # Check if 'Attachment' key exists
+        if 'Attachment' in ni and 'AttachmentId' in ni['Attachment']:
+            attachment_id = ni['Attachment']['AttachmentId']
+            ec2_client.detach_network_interface(AttachmentId=attachment_id)
+            ec2_client.delete_network_interface(NetworkInterfaceId=ni['NetworkInterfaceId'])
+            logger.info(f"Detached and deleted network interface: {ni['NetworkInterfaceId']}")
+        else:
+            logger.info(f"No attachment found for network interface: {ni}, skipping detachment.")
 
     # Delete security group
     try:

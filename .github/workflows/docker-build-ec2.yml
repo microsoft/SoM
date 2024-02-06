@@ -16,7 +16,7 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           command_timeout: "60m"
-          host: 3.239.12.168
+          host: 44.213.76.175
           username: ubuntu  # Usually 'ubuntu' or 'ec2-user'
           
           key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -38,4 +38,6 @@ jobs:
             sudo nvidia-docker build -t openadapt .
 
             # Run the image
-            sudo docker run -d -p 6092:6092 --gpus all --name openadapt-container openadapt
+            sudo docker run -d -p 6092:6092 --gpus all --name openadapt-container \
+              -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+              openadapt
