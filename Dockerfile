@@ -38,6 +38,5 @@ EXPOSE 6092
 # Make Gradio server accessible outside 127.0.0.1
 ENV GRADIO_SERVER_NAME="0.0.0.0"
 
-# Run demo_som.py when the container launches
-#CMD ["python", "./demo_som.py"]
-CMD ["python", "./demo_gpt4v_som.py"]
+RUN chmod +x /usr/src/app/entrypoint.sh
+CMD ["/usr/src/app/entrypoint.sh"]

@@ -1,4 +1,4 @@
-"""Deploy SoM to AWS EC2.
+"""Deploy SoM to AWS EC2 via Github action.
 
 Usage:
 
@@ -11,6 +11,8 @@ Usage:
         echo "GITHUB_REPO=<your github repo>" >> .env
         echo "GITHUB_TOKEN=<your github token>" >> .env
         echo "PROJECT_NAME=<your project name>" >> .env
+        # optional
+        echo "OPENAI_API_KEY=<your openai api key>" >> .env
 
     2. Create a virtual environment for deployment:
 
@@ -45,13 +47,9 @@ Usage:
 
 """
 
-from datetime import datetime, timedelta
-from pprint import pformat
 import base64
 import json
 import os
-import re
-import subprocess
 import time
 
 from botocore.exceptions import ClientError
