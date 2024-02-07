@@ -186,7 +186,7 @@ image = gr.ImageMask(label="Input", type="pil", sources=["upload"], interactive=
 slider = gr.Slider(1, 3, value=1.8, label="Granularity") # info="Choose in [1, 1.5), [1.5, 2.5), [2.5, 3] for [seem, semantic-sam (multi-level), sam]"
 mode = gr.Radio(['Automatic', 'Interactive', ], value='Automatic', label="Segmentation Mode")
 anno_mode = gr.CheckboxGroup(choices=["Mark", "Mask", "Box"], value=['Mark'], label="Annotation Mode")
-image_out = gr.AnnotatedImage(label="SoM Visual Prompt",type="pil", height=512)
+image_out = gr.AnnotatedImage(label="SoM Visual Prompt", height=512)
 runBtn = gr.Button("Run")
 highlightBtn = gr.Button("Highlight")
 bot = gr.Chatbot(label="GPT-4V + SoM", height=256)
