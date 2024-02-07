@@ -25,6 +25,7 @@ jobs:
             source activate pytorch
             nvidia-smi
 
+            rm -rf {{ github_repo }} || true
             git clone https://github.com/{{ github_path }}
             cd {{ github_repo }}
             git checkout {{ branch_name }}
