@@ -30,7 +30,6 @@ RUN pip install torch torchvision torchaudio --extra-index-url https://download.
     && pip install openai \
     && pip install gradio==4.17.0
 
-
 # Download pretrained models
 RUN sh download_ckpt.sh
 

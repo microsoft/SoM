@@ -9,6 +9,7 @@
 
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Modified by Bowen Cheng from https://github.com/fundamentalvision/Deformable-DETR
+# Modified by Richard Abrich from https://github.com/OpenAdaptAI/OpenAdapt
 
 # from https://github.com/pytorch/extension-cpp/issues/71#issuecomment-1778326052
 CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version | sed -n 's/^.*release \([0-9]\+\.[0-9]\+\).*$/\1/p')
@@ -30,4 +31,5 @@ else
 fi
 
 python -m pip install git+https://github.com/facebookresearch/detectron2.git
+
 python setup.py build install
