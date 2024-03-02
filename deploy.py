@@ -33,12 +33,12 @@ Usage:
     5. Wait for the build to succeed in Github actions (see console output for URL)
 
     6. Open the gradio interface (see console output for URL) and test it out.
-       Note that it may take a minute for the interace to become available.
+       Note that it may take a minute for the interface to become available.
        You can also interact with the server programmatically:
 
         python client.py "http://<server_ip>:6092"
 
-    7. Terminate the EC2 instance to stop incurring charges:
+    7. Terminate the EC2 instance and stop incurring charges:
 
         python deploy.py stop
 
@@ -399,7 +399,7 @@ def configure_ec2_instance(
         ec2_instance_id = instance_id
         ec2_instance_ip = instance_ip  # Ensure instance IP is provided if instance_id is manually passed
 
-    key = paramiko.RSAKey.from_private_key_file(f"{config.AWS_EC2_KEY_NAME}.pem")
+    key = paramiko.RSAKey.from_private_key_file(config.AWS_EC2_KEY_PATH)
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
