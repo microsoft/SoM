@@ -19,7 +19,7 @@ EOF
 
         python3.10 -m venv venv
         source venv/bin/activate
-        pip install deploy_requirements.txt
+        pip install -r deploy_requirements.txt
 
     3. Run the deployment script:
 
