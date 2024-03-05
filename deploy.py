@@ -25,21 +25,15 @@ EOF
 
         python deploy.py start
 
-    4. Commit the newly generated github workflow file:
+    4. Wait for the build to succeed in Github actions (see console output for URL)
 
-        git add .github/workflows/docker-build-ec2.yml
-        git commit -m "add workflow file"
-        git push
-
-    5. Wait for the build to succeed in Github actions (see console output for URL)
-
-    6. Open the gradio interface (see console output for URL) and test it out.
+    5. Open the gradio interface (see console output for URL) and test it out.
        Note that it may take a minute for the interface to become available.
        You can also interact with the server programmatically:
 
         python client.py "http://<server_ip>:6092"
 
-    7. Terminate the EC2 instance and stop incurring charges:
+    6. Terminate the EC2 instance and stop incurring charges:
 
         python deploy.py stop
 
@@ -49,7 +43,7 @@ EOF
 
        (This can later be re-started with the `start` command.)
 
-    8. (optional) List all tagged instances with their respective statuses:
+    7. (optional) List all tagged instances with their respective statuses:
 
         python deploy.py status
 
