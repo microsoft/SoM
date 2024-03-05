@@ -6,14 +6,13 @@ Usage:
 
         cat > .env <<EOF
 AWS_ACCESS_KEY_ID=<your aws access key id>
-AWS_SECRET_ACCESS_KEY=<your aws secret access key>
-AWS_REGION=<your aws region>
-GITHUB_OWNER=<your github owner>  # e.g. OpenAdaptAI
-GITHUB_REPO=<your github repo>  # e.g. CogVLM
-GITHUB_TOKEN=<your github token>
-PROJECT_NAME=<your project name>  # for tagging AWS resources
-# optional
-OPENAI_API_KEY=<your openai api key>
+AWS_SECRET_ACCESS_KEY=<your aws secret access key (required)>
+AWS_REGION=<your aws region (required)>
+GITHUB_OWNER=<your github owner (required)>  # e.g. microsoft
+GITHUB_REPO=<your github repo (required)>    # e.g. SoM
+GITHUB_TOKEN=<your github token (required)>
+PROJECT_NAME=<your project name (required)>  # for tagging AWS resources
+OPENAI_API_KEY=<your openai api key (optional)>
 EOF
 
     2. Create a virtual environment for deployment:
