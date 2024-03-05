@@ -53,7 +53,6 @@ EOF
 
         python deploy.py status
 
-
 Troubleshooting Token Scope Error:
 
     If you encounter an error similar to the following when pushing changes to
