@@ -158,6 +158,7 @@ If you find our work helpful for your research, please consider citing the follo
       journal={arXiv preprint arXiv:2310.11441},
       year={2023},
 }
+```
 
 ## Deploy to AWS
 
