@@ -83,6 +83,10 @@ history_texts = []
 def inference(image, slider, mode, alpha, label_mode, anno_mode, *args, **kwargs):
     global history_images; history_images = []
     global history_masks; history_masks = []    
+
+    _image = image['background'].convert('RGB')
+    _mask = image['layers'][0].convert('L') if image['layers'] else None
+
     if slider < 1.5:
         model_name = 'seem'
     elif slider > 2.5:
@@ -119,26 +123,26 @@ def inference(image, slider, mode, alpha, label_mode, anno_mode, *args, **kwargs
         semantic=False
 
         if mode == "Interactive":
-            labeled_array, num_features = label(np.asarray(image['mask'].convert('L')))
+            labeled_array, num_features = label(np.asarray(_mask))
             spatial_masks = torch.stack([torch.from_numpy(labeled_array == i+1) for i in range(num_features)])
 
         if model_name == 'semantic-sam':
             model = model_semsam
-            output, mask = inference_semsam_m2m_auto(model, image['image'], level, text, text_part, text_thresh, text_size, hole_scale, island_scale, semantic, label_mode=label_mode, alpha=alpha, anno_mode=anno_mode, *args, **kwargs)
+            output, mask = inference_semsam_m2m_auto(model, _image, level, text, text_part, text_thresh, text_size, hole_scale, island_scale, semantic, label_mode=label_mode, alpha=alpha, anno_mode=anno_mode, *args, **kwargs)
 
         elif model_name == 'sam':
             model = model_sam
             if mode == "Automatic":
-                output, mask = inference_sam_m2m_auto(model, image['image'], text_size, label_mode, alpha, anno_mode)
+                output, mask = inference_sam_m2m_auto(model, _image, text_size, label_mode, alpha, anno_mode)
             elif mode == "Interactive":
-                output, mask = inference_sam_m2m_interactive(model, image['image'], spatial_masks, text_size, label_mode, alpha, anno_mode)
+                output, mask = inference_sam_m2m_interactive(model, _image, spatial_masks, text_size, label_mode, alpha, anno_mode)
 
         elif model_name == 'seem':
             model = model_seem
             if mode == "Automatic":
-                output, mask = inference_seem_pano(model, image['image'], text_size, label_mode, alpha, anno_mode)
+                output, mask = inference_seem_pano(model, _image, text_size, label_mode, alpha, anno_mode)
             elif mode == "Interactive":
-                output, mask = inference_seem_interactive(model, image['image'], spatial_masks, text_size, label_mode, alpha, anno_mode)
+                output, mask = inference_seem_interactive(model, _image, spatial_masks, text_size, label_mode, alpha, anno_mode)
 
         # convert output to PIL image
         history_masks.append(mask)
@@ -173,30 +177,16 @@ def highlight(mode, alpha, label_mode, anno_mode, *args, **kwargs):
         sections.append((mask_i, r))
     return (history_images[0], sections)
 
-class ImageMask(gr.components.Image):
-    """
-    Sets: source="canvas", tool="sketch"
-    """
-
-    is_template = True
-
-    def __init__(self, **kwargs):
-        super().__init__(source="upload", tool="sketch", interactive=True, **kwargs)
-
-    def preprocess(self, x):
-        return super().preprocess(x)
-
 '''
 launch app
 '''
 
 demo = gr.Blocks()
-image = ImageMask(label="Input", type="pil", brush_radius=20.0, brush_color="#FFFFFF", height=512)
-# image = gr.Image(label="Input", type="pil", height=512)
+image = gr.ImageMask(label="Input", type="pil", sources=["upload"], interactive=True, brush=gr.Brush(colors=["#FFFFFF"]))
 slider = gr.Slider(1, 3, value=1.8, label="Granularity") # info="Choose in [1, 1.5), [1.5, 2.5), [2.5, 3] for [seem, semantic-sam (multi-level), sam]"
 mode = gr.Radio(['Automatic', 'Interactive', ], value='Automatic', label="Segmentation Mode")
 anno_mode = gr.CheckboxGroup(choices=["Mark", "Mask", "Box"], value=['Mark'], label="Annotation Mode")
-image_out = gr.AnnotatedImage(label="SoM Visual Prompt",type="pil", height=512)
+image_out = gr.AnnotatedImage(label="SoM Visual Prompt", height=512)
 runBtn = gr.Button("Run")
 highlightBtn = gr.Button("Highlight")
 bot = gr.Chatbot(label="GPT-4V + SoM", height=256)

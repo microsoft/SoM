@@ -158,3 +158,11 @@ If you find our work helpful for your research, please consider citing the follo
       journal={arXiv preprint arXiv:2310.11441},
       year={2023},
 }
+```
+
+## Deploy to AWS
+
+To deploy SoM to EC2 on AWS via Github Actions:
+
+1. Fork this repository and clone your fork to your local machine.
+2. Follow the instructions at the top of `deploy.py`.
