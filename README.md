@@ -92,10 +92,6 @@ To deploy SoM to EC2 on AWS via Github Actions:
 1. Fork this repository and clone your fork to your local machine.
 2. Follow the instructions at the top of `deploy.py`.
 
-## Potential solutions for some common issues:
-
-* [Errors when installing Semantic-SAM](https://github.com/microsoft/SoM/issues/3) (note: this has been fixed in the AWS deployment)
-
 ### :point_right: Comparing standard GPT-4V and its combination with SoM Prompting
 ![teaser_github](https://github.com/microsoft/SoM/assets/11957155/e4720105-b4b2-40c0-9303-2d8f1cb27d91)
 
