@@ -85,6 +85,12 @@ And you will see this interface:
 
 ![som_toolbox](assets/som_toolbox_interface.jpg)
 
+## Deploy to AWS
+
+To deploy SoM to EC2 on AWS via Github Actions:
+
+1. Fork this repository and clone your fork to your local machine.
+2. Follow the instructions at the top of `deploy.py`.
 Potential solutions for some common issues:
 
 * [Errors when installing Semantic-SAM](https://github.com/microsoft/SoM/issues/3)
@@ -159,10 +165,3 @@ If you find our work helpful for your research, please consider citing the follo
       year={2023},
 }
 ```
-
-## Deploy to AWS
-
-To deploy SoM to EC2 on AWS via Github Actions:
-
-1. Fork this repository and clone your fork to your local machine.
-2. Follow the instructions at the top of `deploy.py`.
