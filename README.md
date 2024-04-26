@@ -18,7 +18,7 @@ We present **S**et-**o**f-**M**ark (SoM) prompting, simply overlaying a number o
 https://github.com/microsoft/SoM/assets/3894247/8f827871-7ebd-4a5e-bef5-861516c4427b
 
 ### 🔥 News
-
+* [04/25] We release SoM-LLaVA, with a new dataset to empower open-source MLLMs with SoM Prompting. Check it out! [SoM-LLaVA](https://github.com/zzxslp/SoM-LLaVA)
 * [11/21] Thanks to Roboflow and @SkalskiP, a [huggingface demo](https://huggingface.co/spaces/Roboflow/SoM) for SoM + GPT-4V is online! Try it out!
 * [11/07] We released the vision benchmark we used to evaluate GPT-4V with SoM prompting! Check out the [benchmark page](https://github.com/microsoft/SoM/tree/main/benchmark)!
 
