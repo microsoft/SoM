@@ -51,7 +51,7 @@ jobs:
           # fetch-tags: true
 
       - name: Log in to the Container registry
-        if: false #${{ github.event.inputs.runs-on }}
+        # if: false #${{ github.event.inputs.runs-on }}
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
