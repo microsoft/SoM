@@ -19,3 +19,17 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  ghcr:
+    environment:
+      FORCE_CUDA: 0
+    image: ghcr.io/feedback-box/som:latest
+    restart: always
+    ports:
+      - 8080:6092
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:6092"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
