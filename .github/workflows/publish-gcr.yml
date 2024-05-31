@@ -81,6 +81,12 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
+            # set latest tag for main branch
+            # type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+
+            # set latest tag for default branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
       - name: Evaluate all tags
         run: |
 
