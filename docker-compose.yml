@@ -1,13 +1,15 @@
 version: "3.8"
 services:
-  # demo_gpt4_som.py
   som:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
     environment:
-      NETWORK: "aurora"
       FORCE_CUDA: 0
-    env_file:
-      - .env.aurora
-    image: ghcr.io/coophive/faucet:latest
+    # env_file:
+    #   - .env
+    # image: ghcr.io/feedback-box/SOM:latest
     restart: always
     ports:
       - 8080:6092
