@@ -1,0 +1,19 @@
+version: "3.8"
+services:
+  # demo_gpt4_som.py
+  som:
+    environment:
+      NETWORK: "aurora"
+      FORCE_CUDA: 0
+    env_file:
+      - .env.aurora
+    image: ghcr.io/coophive/faucet:latest
+    restart: always
+    ports:
+      - 8080:6092
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:6092"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
