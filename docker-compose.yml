@@ -23,7 +23,7 @@ services:
   ghcr:
     environment:
       FORCE_CUDA: 0
-    image: ghcr.io/feedback-box/som:latest
+    image: ghcr.io/feedback-box/som:main
     restart: always
     ports:
       - 8080:6092
