@@ -3,4 +3,4 @@ deploy:
 
 
 cp cId file="app.py":
-  docker cp {{cId}} {{file}}
+  docker cp {{file}} {{cId}}:/usr/src/app
