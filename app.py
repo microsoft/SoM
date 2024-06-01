@@ -117,6 +117,15 @@ output_dir = os.getenv('OUTPUT_DIR', '.')
 os.makedirs(output_dir, exist_ok=True)
 
 def main(image_path="./examples/ironing_man.jpg", slider=2, mode='Automatic', alpha=0.1, label_mode='Number', anno_mode=['Mask', 'Mark']):
+    if os.path.isdir(image_path):
+        print(f"{image_path} is a directory")
+        for file in os.listdir(image_path):
+            fp = os.path.join(image_path, file)
+            print("found {fp}")
+            main(fp)
+        return
+    
+    
     imageName= os.path.basename(image_path)
     output = inference(image_path, slider, mode, alpha, label_mode, anno_mode)
     saveImageLoc = os.path.join(output_dir, f"seg-{imageName}")
