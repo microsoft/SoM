@@ -113,7 +113,7 @@ def inference(image_path, slider=2, mode='Automatic', alpha=0.1, label_mode='Num
 
 import os
 
-output_dir = os.getenv('OUTPUT_DIR', '.')
+output_dir = os.getenv('OUTPUT_DIR', './output')
 os.makedirs(output_dir, exist_ok=True)
 
 def main(image_path="./examples/ironing_man.jpg", slider=2, mode='Automatic', alpha=0.1, label_mode='Number', anno_mode=['Mask', 'Mark']):
