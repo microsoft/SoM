@@ -128,8 +128,16 @@ def main(image_path="./examples/ironing_man.jpg", slider=2, mode='Automatic', al
     
     imageName= os.path.basename(image_path)
     output = inference(image_path, slider, mode, alpha, label_mode, anno_mode)
+    
+    output_image:Image
+    
+    if isinstance(output, np.ndarray):
+        output_image = Image.fromarray(output)
+    else:
+        output_image = output
+
     saveImageLoc = os.path.join(output_dir, f"seg-{imageName}")
-    output.save(saveImageLoc)
+    output_image.save(saveImageLoc)
     print(f"save image in {saveImageLoc}")
 
 if __name__ == '__main__':
