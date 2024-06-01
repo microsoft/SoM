@@ -22,8 +22,8 @@ def predict(server_url: str):
     result = client.predict(
         {
             # "background": "https://raw.githubusercontent.com/gradio-app/gradio/main/test/test_files/bus.png",
-            # "background":  file("https://raw.githubusercontent.com/gradio-app/gradio/main/test/test_files/bus.png")
-            "background":  "./examples/ironing_man.jpg"
+            "background":  file("https://raw.githubusercontent.com/gradio-app/gradio/main/test/test_files/bus.png")
+            # "background":  "./examples/ironing_man.jpg"
         },           # filepath in 'parameter_1' Image component
         2,         # float (numeric value between 1 and 3) in 'Granularity' Slider component
         "Automatic", # Literal['Automatic', 'Interactive'] in 'Segmentation Mode' Radio component
