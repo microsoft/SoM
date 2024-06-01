@@ -52,6 +52,9 @@ ENV GRADIO_SERVER_NAME="0.0.0.0"
 # sample run to cache the swin large patch4 pynode
 # RUN python app.py 
 
+ENV HF_DATASETS_OFFLINE=1 
+ENV TRANSFORMERS_OFFLINE=1 
+
 ENTRYPOINT [ "python", "app.py" ]
 # CMD [""]
 
