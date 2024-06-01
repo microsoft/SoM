@@ -55,6 +55,8 @@ ENV GRADIO_SERVER_NAME="0.0.0.0"
 ENV HF_DATASETS_OFFLINE=1 
 ENV TRANSFORMERS_OFFLINE=1 
 
+RUN python setup-docker.py
+
 ENTRYPOINT [ "python", "app.py" ]
 # CMD [""]
 
