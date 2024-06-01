@@ -10,9 +10,9 @@ RUN apt-get update && \
   ln -sf /usr/bin/pip3 /usr/bin/pip
 
 # Set the working directory in the container
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Copy the current directory contents into the container at /usr/src/app
+# Copy the current directory contents into the container at /app
 COPY . .
 
 ENV FORCE_CUDA=0
@@ -46,11 +46,11 @@ EXPOSE 6092
 # Make Gradio server accessible outside 127.0.0.1
 ENV GRADIO_SERVER_NAME="0.0.0.0"
 
-# RUN chmod +x /usr/src/app/entrypoint.sh
-# CMD ["/usr/src/app/entrypoint.sh"]
+# RUN chmod +x /app/entrypoint.sh
+# CMD ["/app/entrypoint.sh"]
 
 # sample run to cache the swin large patch4 pynode
-RUN python app.py 
+# RUN python app.py 
 
 ENTRYPOINT [ "python", "app.py" ]
 # CMD [""]
