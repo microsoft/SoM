@@ -9,7 +9,9 @@ x-defaults: &default-gpu-settings
     resources:
       reservations:
         devices:
-          - capabilities: [gpu]
+          - driver: nvidia
+            count: "all"
+            capabilities: [gpu]
 
 services:
   som:
