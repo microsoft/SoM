@@ -49,6 +49,9 @@ ENV GRADIO_SERVER_NAME="0.0.0.0"
 # RUN chmod +x /usr/src/app/entrypoint.sh
 # CMD ["/usr/src/app/entrypoint.sh"]
 
+# sample run to cache the swin large patch4 pynode
+RUN python app.py 
+
 ENTRYPOINT [ "python", "app.py" ]
 # CMD [""]
 
