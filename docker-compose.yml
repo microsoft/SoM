@@ -4,7 +4,7 @@ x-defaults: &default-gpu-settings
   environment:
     FORCE_CUDA: 0
     NVIDIA_VISIBLE_DEVICES: all # Use all GPUs, or specify GPU IDs e.g., '0,1'
-  runtime: nvidia
+  # runtime: nvidia
   deploy:
     resources:
       reservations:
