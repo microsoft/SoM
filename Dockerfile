@@ -16,6 +16,12 @@ WORKDIR /usr/src/app
 COPY . .
 
 ENV FORCE_CUDA=0
+ENV OUTPUT_DIR='/outputs'
+ENV INPUT_DIR='/inputs'
+
+
+RUN mkdir -p ${INPUT_DIR}
+RUN mkdir -p ${OUTPUT_DIR}
 
 # Upgrade pip
 RUN python -m pip install --upgrade pip
@@ -40,5 +46,10 @@ EXPOSE 6092
 # Make Gradio server accessible outside 127.0.0.1
 ENV GRADIO_SERVER_NAME="0.0.0.0"
 
-RUN chmod +x /usr/src/app/entrypoint.sh
-CMD ["/usr/src/app/entrypoint.sh"]
+# RUN chmod +x /usr/src/app/entrypoint.sh
+# CMD ["/usr/src/app/entrypoint.sh"]
+
+ENTRYPOINT [ "python", "demo.py" ]
+# CMD [""]
+
+LABEL maintainer="Hiro <laciferin@gmail.com>"

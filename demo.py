@@ -110,9 +110,18 @@ def inference(image_path, slider=2, mode='Automatic', alpha=0.1, label_mode='Num
 
         return output
 
-def main(image_path, slider=2, mode='Automatic', alpha=0.1, label_mode='Number', anno_mode=['Mask', 'Mark']):
+
+import os
+
+output_dir = os.getenv('OUTPUT_DIR', '.')
+os.makedirs(output_dir, exist_ok=True)
+
+def main(image_path="./examples/ironing_man.jpg", slider=2, mode='Automatic', alpha=0.1, label_mode='Number', anno_mode=['Mask', 'Mark']):
+    imageName= os.path.basename(image_path)
     output = inference(image_path, slider, mode, alpha, label_mode, anno_mode)
-    output.save('segmented_output.png')
+    saveImageLoc = os.path.join(output_dir, f"seg-{imageName}")
+    output.save(saveImageLoc)
+    print(f"save image in {saveImageLoc}")
 
 if __name__ == '__main__':
     fire.Fire(main)
