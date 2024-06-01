@@ -121,7 +121,7 @@ def main(image_path="./examples/ironing_man.jpg", slider=2, mode='Automatic', al
         print(f"{image_path} is a directory")
         for file in os.listdir(image_path):
             fp = os.path.join(image_path, file)
-            print("found {fp}")
+            print(f"found {fp}")
             main(fp)
         return
     
