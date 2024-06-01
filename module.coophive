@@ -1,0 +1,59 @@
+{
+  "machine": {
+    "gpu": 1,
+    "cpu": 1000,
+    "ram": 1000
+  },
+  "job": {
+    "APIVersion": "V1beta1",
+    "Spec": {
+      "EngineSpec": {
+        "Type": "docker",
+        "Params": {
+          "Entrypoint": null,
+          "EnvironmentVariables": [
+            "OUTPUT_DIR='/outputs'"
+          ],
+          "Image": "ghcr.io/feedback-box/som:main",
+          "Parameters": [
+            "/inputs"
+          ],
+          "WorkingDirectory": "/app"
+        }
+      },
+      "PublisherSpec": {
+        "Type": "ipfs"
+      },
+      "Docker": {},
+      "Wasm": {
+        "EntryModule": {}
+      },
+      "Resources": {
+        "CPU": "3",
+        "Memory": "4gb",
+        "GPU": "1"
+      },
+      "Network": {
+        "Type": "None"
+      },
+      "Timeout": 3600,
+      "Inputs": [
+        {
+          "StorageSource": "urlDownload",
+          "Name": "rawImages",
+          "URL": "https://raw.githubusercontent.com/gradio-app/gradio/main/test/test_files/bus.png",
+          "Path": "/inputs"
+        }
+      ],
+      "Outputs": [
+        {
+          "Name": "outputs",
+          "Path": "/outputs"
+        }
+      ],
+      "Deal": {
+        "Concurrency": 1
+      }
+    }
+  }
+}

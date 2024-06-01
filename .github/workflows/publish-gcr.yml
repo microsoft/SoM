@@ -4,8 +4,12 @@ on:
     branches:
       - main
       - ci/*
+      - deploy/*
 
     tags:
+
+    # paths:
+    #   - ./Dockerfile
 
   pull_request:
     branches:

@@ -41,20 +41,3 @@ Thumbs.db
 # Ignore Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 
-# Ignore config files
-configs/
-
-# Ignore example images
-examples/
-
-# Ignore models folder if you don't want to include the model files in the image
-# (Only uncomment if models are not required inside the Docker image)
-# models/
-
-# Ignore output directory
-# output/
-
-# Ignore other irrelevant files or folders
-test/
-tests/
-docs/

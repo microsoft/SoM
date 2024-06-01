@@ -1,3 +1,12 @@
+FROM alpine:latest as ckpt
+
+WORKDIR /app
+
+# Download pretrained models
+COPY download_ckpt.sh .
+
+RUN sh download_ckpt.sh
+
 FROM nvidia/cuda:12.3.1-devel-ubuntu22.04
 
 # Install system dependencies
@@ -37,8 +46,10 @@ RUN pip install torch torchvision torchaudio --extra-index-url https://download.
   && pip install gradio==4.17.0 \
   && pip install fire
 
-# Download pretrained models
-RUN sh download_ckpt.sh
+
+# borrow downloaded ckpt
+COPY --from=ckpt /app .
+
 
 # Make port 6092 available to the world outside this container
 EXPOSE 6092
@@ -51,11 +62,12 @@ ENV GRADIO_SERVER_NAME="0.0.0.0"
 
 # sample run to cache the swin large patch4 pynode
 # RUN python app.py 
+RUN python setup-docker.py
+
 
 ENV HF_DATASETS_OFFLINE=1 
 ENV TRANSFORMERS_OFFLINE=1 
 
-RUN python setup-docker.py
 
 ENTRYPOINT [ "python", "app.py" ]
 # CMD [""]
