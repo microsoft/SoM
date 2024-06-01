@@ -22,13 +22,14 @@ def predict(server_url: str):
     result = client.predict(
         {
             # "background": "https://raw.githubusercontent.com/gradio-app/gradio/main/test/test_files/bus.png",
-            "background":  file("https://raw.githubusercontent.com/gradio-app/gradio/main/test/test_files/bus.png")
+            # "background":  file("https://raw.githubusercontent.com/gradio-app/gradio/main/test/test_files/bus.png")
+            "background":  "./examples/ironing_man.jpg"
         },           # filepath in 'parameter_1' Image component
-        2.5,         # float (numeric value between 1 and 3) in 'Granularity' Slider component
+        2,         # float (numeric value between 1 and 3) in 'Granularity' Slider component
         "Automatic", # Literal['Automatic', 'Interactive'] in 'Segmentation Mode' Radio component
-        0.5,         # float (numeric value between 0 and 1) in 'Mask Alpha' Slider component
+        0.1,         # float (numeric value between 0 and 1) in 'Mask Alpha' Slider component
         "Number",    # Literal['Number', 'Alphabet'] in 'Mark Mode' Radio component
-        ["Mark"],    # List[Literal['Mask', 'Box', 'Mark']] in 'Annotation Mode' Checkboxgroup component
+        ['Mask', 'Mark'],    # List[Literal['Mask', 'Box', 'Mark']] in 'Annotation Mode' Checkboxgroup component
         api_name="/inference"
     )
     logger.info(result)
