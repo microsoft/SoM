@@ -1,0 +1,43 @@
+version: "3.8"
+
+x-defaults: &default-gpu-settings
+  environment:
+    FORCE_CUDA: 0
+    NVIDIA_VISIBLE_DEVICES: all # Use all GPUs, or specify GPU IDs e.g., '0,1'
+  # runtime: nvidia
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: "all"
+            capabilities: [gpu]
+
+services:
+  som:
+    <<: *default-gpu-settings
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 8080:6092
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:6092"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  ghcr:
+    <<: *default-gpu-settings
+    image: ghcr.io/feedback-box/som:main
+    restart: always
+    ports:
+      - 8080:6092
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:6092"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

@@ -1,3 +1,9 @@
+---
+title: SoM_v0
+app_file: demo_som.py
+sdk: gradio
+sdk_version: 4.32.1
+---
 # <img src="assets/som_logo.png" alt="Logo" width="40" height="40" align="left"> Set-of-Mark Visual Prompting for GPT-4V
 
 :grapes: \[[Read our arXiv Paper](https://arxiv.org/pdf/2310.11441.pdf)\] &nbsp; :apple: \[[Project Page](https://som-gpt4v.github.io/)\] 
