@@ -7,6 +7,9 @@ on:
       - deploy/*
 
     tags:
+      - "v*"
+      - "*"
+      - "**"
 
     # paths:
     #   - ./Dockerfile
@@ -36,8 +39,11 @@ jobs:
     runs-on: "ubuntu-latest"
 
     permissions:
-      contents: read
+      contents: write
       packages: write
+      actions: write
+      deployments: write
+      repository-projects: write
 
     steps:
       - name: Remove unnecessary
@@ -47,6 +53,31 @@ jobs:
           sudo rm -rf /opt/ghc &
           sudo rm -rf /opt/hostedtoolcache/CodeQL 
           sudo docker image prune --all --force &
+          sudo docker system prune -a --volumes -f & 
+          sudo rm -rf /opt/ghc &
+          sudo rm -rf "/usr/local/share/boost" &
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY" &
+
+      - name: Point docker dir to /mnt for space
+        run: |
+          # Create the directory for Docker data
+          sudo mkdir /mnt/docker-data
+
+          # Stop Docker service
+          sudo systemctl stop docker
+
+          # Edit the Docker daemon configuration file
+          sudo bash -c 'cat > /etc/docker/daemon.json <<EOF
+          {
+            "data-root": "/mnt/docker-data"
+          }
+          EOF'
+
+          # Start Docker service
+          sudo systemctl start docker
+
+          # Verify the new Docker root directory
+          docker info | grep "Docker Root Dir"
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -112,7 +143,18 @@ jobs:
           github-token: ${{github.token}}
           # cache-from: type=registry,ref=user/app:latest
           # cache-to: type=inline
-          cache-from: type=registry,ref=user/app:buildcache
-          cache-to: type=registry,ref=user/app:buildcache,mode=max
+          # cache-from: type=registry,ref=user/app:buildcache
+          # cache-to: type=registry,ref=user/app:buildcache,mode=max
           # cache-from: type=gha Don't use cuz of cache limits our image size is way bigger than 10GB
           # cache-to: type=gha,mode=max
+
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      - # Temp fix
+        # https://github.com/docker/build-push-action/issues/252
+        # https://github.com/moby/buildkit/issues/1896
+        name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache

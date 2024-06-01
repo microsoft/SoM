@@ -12,9 +12,11 @@
         "Params": {
           "Entrypoint": null,
           "EnvironmentVariables": [
-            "OUTPUT_DIR='/outputs'"
+            "OUTPUT_DIR=/outputs",
+            "HF_DATASETS_OFFLINE=0",
+            "TRANSFORMERS_OFFLINE=0"
           ],
-          "Image": "ghcr.io/feedback-box/som:main",
+          "Image": "ghcr.io/feedback-box/som:ci-fix-no-disk-free",
           "Parameters": [
             "/inputs"
           ],
