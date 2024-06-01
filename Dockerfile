@@ -28,7 +28,8 @@ RUN pip install torch torchvision torchaudio --extra-index-url https://download.
   && cd ops && bash make.sh && cd .. \
   && pip install mpi4py \
   && pip install openai \
-  && pip install gradio==4.17.0
+  && pip install gradio==4.17.0 \
+  && pip install fire
 
 # Download pretrained models
 RUN sh download_ckpt.sh
