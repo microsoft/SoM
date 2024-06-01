@@ -8,7 +8,7 @@ Usage:
 """
 
 import fire
-from gradio_client import Client
+from gradio_client import Client, file
 from loguru import logger
 
 def predict(server_url: str):
@@ -21,7 +21,8 @@ def predict(server_url: str):
     client = Client(server_url)
     result = client.predict(
         {
-            "background": "https://raw.githubusercontent.com/gradio-app/gradio/main/test/test_files/bus.png",
+            # "background": "https://raw.githubusercontent.com/gradio-app/gradio/main/test/test_files/bus.png",
+            "background":  file("https://raw.githubusercontent.com/gradio-app/gradio/main/test/test_files/bus.png")
         },           # filepath in 'parameter_1' Image component
         2.5,         # float (numeric value between 1 and 3) in 'Granularity' Slider component
         "Automatic", # Literal['Automatic', 'Interactive'] in 'Segmentation Mode' Radio component
