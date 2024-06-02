@@ -165,3 +165,5 @@ output/
 
 module.json
 .pth
+
+.data/

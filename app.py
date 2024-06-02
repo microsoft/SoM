@@ -33,18 +33,8 @@ semsam_ckpt = "./swinl_only_sam_many2many.pth"
 sam_ckpt = "./sam_vit_h_4b8939.pth"
 seem_ckpt = "./seem_focall_v1.pt"
 
-opt_semsam = load_opt_from_config_file(semsam_cfg)
-opt_seem = load_opt_from_config_file(seem_cfg)
-opt_seem = init_distributed_seem(opt_seem)
-
 # Build models
-model_semsam = BaseModel(opt_semsam, build_model(opt_semsam)).from_pretrained(semsam_ckpt).eval().cuda()
-model_sam = sam_model_registry["vit_h"](checkpoint=sam_ckpt).eval().cuda()
-model_seem = BaseModel_Seem(opt_seem, build_model_seem(opt_seem)).from_pretrained(seem_ckpt).eval().cuda()
-
-with torch.no_grad():
-    with torch.autocast(device_type='cuda', dtype=torch.float16):
-        model_seem.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
+# Don't cold start hennecessary
 
 @torch.no_grad()
 def inference(image_path, slider=2, mode='Automatic', alpha=0.1, label_mode='Number', anno_mode=['Mask', 'Mark']):
@@ -53,11 +43,14 @@ def inference(image_path, slider=2, mode='Automatic', alpha=0.1, label_mode='Num
 
     if slider < 1.5:
         model_name = 'seem'
+        
     elif slider > 2.5:
         model_name = 'sam'
+
     else:
         if mode == 'Automatic':
             model_name = 'semantic-sam'
+            
             if slider < 1.5 + 0.14:
                 level = [1]
             elif slider < 1.5 + 0.28:
@@ -74,6 +67,25 @@ def inference(image_path, slider=2, mode='Automatic', alpha=0.1, label_mode='Num
                 level = [6, 1, 2, 3, 4, 5]
         else:
             model_name = 'sam'
+            
+    print("model_name: ", model_name)
+    match model_name:
+        case 'seem':
+            opt_seem = load_opt_from_config_file(seem_cfg)
+            opt_seem = init_distributed_seem(opt_seem)
+            model_seem = BaseModel_Seem(opt_seem, build_model_seem(opt_seem)).from_pretrained(seem_ckpt).eval().cuda() #FIXME: not working in bacalhau  
+            with torch.no_grad():
+                with torch.autocast(device_type='cuda', dtype=torch.float16):
+                    model_seem.model.sem_seg_head.predictor.lang_encoder.get_text_embeddings(COCO_PANOPTIC_CLASSES + ["background"], is_eval=True)
+
+        case 'sam':
+            model_sam = sam_model_registry["vit_h"](checkpoint=sam_ckpt).eval().cuda()
+        case 'semantic-sam':     
+            opt_semsam = load_opt_from_config_file(semsam_cfg)
+            model_semsam = BaseModel(opt_semsam, build_model(opt_semsam)).from_pretrained(semsam_ckpt).eval().cuda()
+        case _:
+            raise ValueError(f"invalid model name : {model_name}")
+        
 
     if label_mode == 'Alphabet':
         label_mode = 'a'
@@ -116,6 +128,7 @@ import os
 output_dir = os.getenv('OUTPUT_DIR', './output')
 os.makedirs(output_dir, exist_ok=True)
 
+# slider: granularity
 def main(image_path="./examples/ironing_man.jpg", slider=2, mode='Automatic', alpha=0.1, label_mode='Number', anno_mode=['Mask', 'Mark']):
     if os.path.isdir(image_path):
         print(f"{image_path} is a directory")
