@@ -16,14 +16,10 @@
             "HF_DATASETS_OFFLINE=0",
             "TRANSFORMERS_OFFLINE=0"
           ],
-          "Image": "ghcr.io/feedback-box/som:v0.2.0",
+          "Image": "ghcr.io/feedback-box/som:sha-ca9d675",
           "Parameters": [
-            "/inputs",
-            {{if .slider}}"{{ subt "%s" .slider }}" {{else}} "2.5"{{end}},
-            {{if .mode}}{{ .mode }} {{else}}"Automatic"{{end}},
-            {{if .alpha}}{{ .alpha }} {{else}}0.1{{end}},
-            {{if .label_mode}}{{ .label_mode }} {{else}}"Number"{{end}},
-            {{if .anno_mode}}{{ .anno_mode }} {{else}}"Mask Mark"{{end}}
+            "--image_path=/inputs",
+            "--slider=2.6"
           ],
           "WorkingDirectory": "/app"
         }
@@ -37,7 +33,7 @@
       },
       "Resources": {
         "CPU": "3",
-        "Memory": "4gb",
+        "Memory": "12gb",
         "GPU": "1"
       },
       "Network": {

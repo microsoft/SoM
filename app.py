@@ -129,7 +129,7 @@ output_dir = os.getenv('OUTPUT_DIR', './output')
 os.makedirs(output_dir, exist_ok=True)
 
 # slider: granularity
-def main(image_path="./examples/ironing_man.jpg", slider=2, mode='Automatic', alpha=0.1, label_mode='Number', anno_mode=['Mask', 'Mark']):
+def main(image_path="./examples/ironing_man.jpg", slider=2.7, mode='Automatic', alpha=0.1, label_mode='Number', anno_mode=['Mask', 'Mark']):
     if os.path.isdir(image_path):
         print(f"{image_path} is a directory")
         for file in os.listdir(image_path):
@@ -138,6 +138,7 @@ def main(image_path="./examples/ironing_man.jpg", slider=2, mode='Automatic', al
             main(fp)
         return
     
+    print(f"{image_path} {slider} {mode} {alpha} {label_mode} {anno_mode}")
     
     imageName= os.path.basename(image_path)
     output = inference(image_path, slider, mode, alpha, label_mode, anno_mode)

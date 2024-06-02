@@ -167,3 +167,5 @@ module.json
 .pth
 
 .data/
+
+job-*/
