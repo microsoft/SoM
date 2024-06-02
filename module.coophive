@@ -23,7 +23,7 @@
             {{if .mode}}{{ .mode }} {{else}}"Automatic"{{end}},
             {{if .alpha}}{{ .alpha }} {{else}}0.1{{end}},
             {{if .label_mode}}{{ .label_mode }} {{else}}"Number"{{end}},
-            {{if .anno_mode}}{{ .anno_mode }} {{else}}"Mask Mark"{{end}},
+            {{if .anno_mode}}{{ .anno_mode }} {{else}}"Mask Mark"{{end}}
           ],
           "WorkingDirectory": "/app"
         }
