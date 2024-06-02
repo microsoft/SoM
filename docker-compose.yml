@@ -31,7 +31,7 @@ services:
 
   ghcr:
     <<: *default-gpu-settings
-    image: ghcr.io/feedback-box/som:main
+    image: ghcr.io/playback-network/som:main
     restart: always
     ports:
       - 8080:6092

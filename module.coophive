@@ -16,7 +16,7 @@
             "HF_DATASETS_OFFLINE=0",
             "TRANSFORMERS_OFFLINE=0"
           ],
-          "Image": "ghcr.io/feedback-box/som:sha-ca9d675",
+          "Image": "ghcr.io/playback-network/som:sha-ca9d675",
           "Parameters": [
             "--image_path=/inputs",
             "--slider=2.6"
