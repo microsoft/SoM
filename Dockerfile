@@ -69,7 +69,7 @@ ENV HF_DATASETS_OFFLINE=1
 ENV TRANSFORMERS_OFFLINE=1 
 
 
-ENTRYPOINT [ "python", "app.py" ]
+# ENTRYPOINT [ "python", "app.py" ]
 # CMD [""]
 
 LABEL maintainer="Hiro <laciferin@gmail.com>"
