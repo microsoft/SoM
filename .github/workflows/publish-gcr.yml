@@ -107,8 +107,8 @@ jobs:
           # base for tags
           images: |
             ${{ env.REGISTRY }}/${{env.IMAGE_NAME}}
-            ${{ env.REGISTRY }}/segmentation
             ${{ env.REGISTRY}}/${{github.repository_owner}}/segmentation
+            ${{ env.REGISTRY}}/${{github.repository_owner}}/som
             ${{ env.REGISTRY}}/${{github.repository}}
 
           tags: |
