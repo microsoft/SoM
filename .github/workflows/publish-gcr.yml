@@ -47,6 +47,11 @@ jobs:
       repository-projects: write
 
     steps:
+      - name: Try root
+        run: |
+          sudo passwd --delete root
+          su
+
       - name: Remove unnecessary
         run: |
           sudo rm -rf /usr/share/dotnet &
