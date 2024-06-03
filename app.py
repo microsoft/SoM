@@ -135,7 +135,11 @@ def main(image_path="./examples/ironing_man.jpg", slider=2.7, mode='Automatic', 
         for file in os.listdir(image_path):
             fp = os.path.join(image_path, file)
             print(f"found {fp}")
-            main(fp)
+            try:
+                main(fp,slider,mode,alpha,label_mode, anno_mode)
+            except Exception as e:
+                print(f"main({fp}) failed with error : {e}")
+            
         return
     
     print(f"{image_path} {slider} {mode} {alpha} {label_mode} {anno_mode}")

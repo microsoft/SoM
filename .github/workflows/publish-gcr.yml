@@ -5,6 +5,7 @@ on:
       - main
       - ci/*
       - deploy/*
+      - docker/*
 
     tags:
       - "v*"
@@ -26,6 +27,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  IMAGE: ghcr.io/${{github.repository_owner}}
   IMAGE_NAME: ${{ github.repository }}
   PUSH_TAG: ${{github.repository}}:latest
   REPO: ${{github.repository}}
@@ -46,6 +48,11 @@ jobs:
       repository-projects: write
 
     steps:
+      - name: Try root
+        run: |
+          sudo passwd --delete root
+          su
+
       - name: Remove unnecessary
         run: |
           sudo rm -rf /usr/share/dotnet &
@@ -100,10 +107,10 @@ jobs:
         with:
           # base for tags
           images: |
-            ${{ env.REGISTRY }}/${{env.IMAGE_NAME}}
-            ${{ env.REGISTRY }}/segmentation
-            ${{ env.REGISTRY}}/${{github.repository_owner}}/segmentation
-            ${{ env.REGISTRY}}/${{github.repository}}
+            ${{env.IMAGE}}/${{github.repository}}
+            ${{env.IMAGE}}/som
+            ${{env.IMAGE}}/microsoft-som
+            ${{env.IMAGE}}/segment-image
 
           tags: |
 
@@ -150,7 +157,7 @@ jobs:
           # cache-to: type=gha,mode=max
 
           cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=min
 
       - # Temp fix
         name: Move cache
