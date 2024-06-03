@@ -5,6 +5,7 @@ on:
       - main
       - ci/*
       - deploy/*
+      - docker/*
 
     tags:
       - "v*"
