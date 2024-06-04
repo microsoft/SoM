@@ -6,6 +6,8 @@ on:
       - ci/*
       - deploy/*
       - docker/*
+      - bugfix/*
+      - hotfix/*
 
     tags:
       - "v*"
