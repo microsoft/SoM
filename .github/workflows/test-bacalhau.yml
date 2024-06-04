@@ -1,28 +1,9 @@
 name: Test Bacalhau
 on:
-  push:
-    branches:
-      - main
-      - ci/*
-      - deploy/*
-      - docker/*
-      - bugfix/*
-      - hotfix/*
-
-    tags:
-      - "v*"
-      - "*"
-      - "**"
-
-    # paths:
-    #   - ./Dockerfile
-
-  pull_request:
-    branches:
-      - main
-
-  workflow_dispatch:
-
+  workflow_run:
+    workflows: ["First Workflow"]
+    types:
+      - completed
 env:
   REGISTRY: ghcr.io
   IMAGE: ghcr.io/${{github.repository_owner}}
@@ -37,7 +18,6 @@ permissions:
 jobs:
   test-bacalhau:
     runs-on: "ubuntu-latest"
-    needs: [".github/workflows/test-bacalhau.yml"]
 
     steps:
       - name: Install Bacalhau
