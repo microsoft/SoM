@@ -1,4 +1,4 @@
-name: Publish to GCR
+name: Test Bacalhau
 on:
   push:
     branches:
@@ -37,6 +37,7 @@ permissions:
 jobs:
   test-bacalhau:
     runs-on: "ubuntu-latest"
+    needs: [".github/workflows/test-bacalhau.yml"]
 
     steps:
       - name: Install Bacalhau
