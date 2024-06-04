@@ -18,8 +18,12 @@
           ],
           "Image": "ghcr.io/playback-network/som:sha-ca9d675",
           "Parameters": [
-            "--image_path=/inputs",
-            "--slider=2.6"
+            "/inputs",
+            {{if .slider}}"{{ subt "%s" .slider }}"{{else}} "2.6"{{end}},
+            {{if .mode}}{{ .mode }} {{else}}"Automatic"{{end}},
+            {{if .alpha}}{{ .alpha }} {{else}}"0.1"{end}},
+            {{if .label_mode}}{{ .label_mode }} {{else}}"Number"{{end}},
+            {{if .anno_mode}}{{ .anno_mode }} {{else}}"Mask Mark"{{end}}
           ],
           "WorkingDirectory": "/app"
         }

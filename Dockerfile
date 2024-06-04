@@ -24,7 +24,7 @@ WORKDIR /app
 # Copy the current directory contents into the container at /app
 COPY . .
 
-ENV FORCE_CUDA=0
+ENV FORCE_CUDA=1
 ENV OUTPUT_DIR='/outputs'
 ENV INPUT_DIR='/inputs'
 
@@ -44,7 +44,8 @@ RUN pip install torch torchvision torchaudio --extra-index-url https://download.
   && pip install mpi4py \
   && pip install openai \
   && pip install gradio==4.17.0 \
-  && pip install fire
+  && pip install fire \
+  && pip install dask distributed
 
 
 # borrow downloaded ckpt

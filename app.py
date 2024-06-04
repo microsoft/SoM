@@ -1,10 +1,11 @@
-# segmentation_cli.py
-
+import logging
+import traceback
 import torch
 import numpy as np
 from scipy.ndimage import label
 import fire
 from PIL import Image
+from dask import delayed,compute
 
 # seem
 from seem.modeling.BaseModel import BaseModel as BaseModel_Seem
@@ -128,35 +129,60 @@ import os
 output_dir = os.getenv('OUTPUT_DIR', './output')
 os.makedirs(output_dir, exist_ok=True)
 
+
+@delayed
+def process_image(image_path, slider, mode, alpha, label_mode, anno_mode):
+    print(f"process_image {image_path} {slider} {mode} {alpha} {label_mode} {anno_mode}")
+    
+    try:
+        print(f"Processing image: {image_path} with slider: {slider}, mode: {mode}, alpha: {alpha}, label_mode: {label_mode}, anno_mode: {anno_mode}")
+        imageName = os.path.basename(image_path)
+        output = inference(image_path, slider, mode, alpha, label_mode, anno_mode)
+
+        output_image: Image
+
+        if isinstance(output, np.ndarray):
+            output_image = Image.fromarray(output)
+        else:
+            output_image = output
+
+        saveImageLoc = os.path.join(output_dir, f"seg-{imageName}")
+        output_image.save(saveImageLoc)
+        print(f"Saved image in {saveImageLoc}")
+        return None  # No exception occurred, return None
+    except Exception as e:
+        traceback.print_exc()  # Print traceback
+        # logging.exception(f"main() failed with error : {e}")
+        return e  # Return the exception
+
 # slider: granularity
 def main(image_path="./examples/ironing_man.jpg", slider=2.7, mode='Automatic', alpha=0.1, label_mode='Number', anno_mode=['Mask', 'Mark']):
+    delayed_calls = []
+    
+    print(f"main {image_path} {slider} {mode} {alpha} {label_mode} {anno_mode}")
+    
     if os.path.isdir(image_path):
+        cleanRun = True
         print(f"{image_path} is a directory")
         for file in os.listdir(image_path):
             fp = os.path.join(image_path, file)
-            print(f"found {fp}")
-            try:
-                main(fp,slider,mode,alpha,label_mode, anno_mode)
-            except Exception as e:
-                print(f"main({fp}) failed with error : {e}")
-            
-        return
-    
-    print(f"{image_path} {slider} {mode} {alpha} {label_mode} {anno_mode}")
-    
-    imageName= os.path.basename(image_path)
-    output = inference(image_path, slider, mode, alpha, label_mode, anno_mode)
-    
-    output_image:Image
-    
-    if isinstance(output, np.ndarray):
-        output_image = Image.fromarray(output)
-    else:
-        output_image = output
+            print(f"Found {fp}")
+            d = process_image(fp, slider, mode, alpha, label_mode, anno_mode)
+            delayed_calls.append(d)
 
-    saveImageLoc = os.path.join(output_dir, f"seg-{imageName}")
-    output_image.save(saveImageLoc)
-    print(f"save image in {saveImageLoc}")
+    else:
+        d = process_image(image_path, slider, mode, alpha, label_mode, anno_mode)
+        delayed_calls.append(d)
+    
+    delayed_results = compute(*delayed_calls)
+    exceptions = [result for result in delayed_results if isinstance(result, Exception)]
+    if exceptions:
+        for exc in exceptions:
+            logging.exception(f"Exception occurred: {exc}")
+            
+    if len(exceptions)>0:
+        raise ChildProcessError("One of the image processing failed")
+    
 
 if __name__ == '__main__':
     fire.Fire(main)
