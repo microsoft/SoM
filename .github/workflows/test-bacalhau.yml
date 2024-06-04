@@ -1,0 +1,86 @@
+name: Publish to GCR
+on:
+  push:
+    branches:
+      - main
+      - ci/*
+      - deploy/*
+      - docker/*
+      - bugfix/*
+      - hotfix/*
+
+    tags:
+      - "v*"
+      - "*"
+      - "**"
+
+    # paths:
+    #   - ./Dockerfile
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ghcr.io/${{github.repository_owner}}
+  IMAGE_NAME: ${{ github.repository }}
+  PUSH_TAG: ${{github.repository}}:latest
+  REPO: ${{github.repository}}
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  test-bacalhau:
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - name: Install Bacalhau
+        run: |
+          curl -sL https://get.bacalhau.org/install.sh | sudo bash
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # base for tags
+          images: |
+            ${{env.IMAGE}}/${{github.repository}}
+
+          tags: |
+            # set latest tag for main branch
+            # type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+
+            type=raw,value=latest,enable={{is_default_branch}}
+
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
+
+            type=schedule
+            type=sha,format=short
+
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Get Tags
+        run: |
+          tags="${{ steps.meta.outputs.tags }}"
+          echo tags are $tags
+          IFS=',' read -r -a tags_array <<< "$tags"
+          for tag in "${tags_array[@]}"
+          do
+            echo "Tag: $tag"
+          done
+      - name: Test module
+        run: |
+          bacalhau docker run --download \
+            --wait \
+            --memory '12Gb' \
+            --gpu 1 \
+            --input https://gateway.lighthouse.storage/ipfs/QmPSwBPP1fBxTt56ZN6ZiqPo1gHYQ8iHRVaiEAn9k9ycWd:/inputs  \
+            ghcr.io/playback-network/som:$tag -- '/inputs' 2.7
