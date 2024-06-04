@@ -83,4 +83,4 @@ jobs:
             --memory '12Gb' \
             --gpu 1 \
             --input https://gateway.lighthouse.storage/ipfs/QmPSwBPP1fBxTt56ZN6ZiqPo1gHYQ8iHRVaiEAn9k9ycWd:/inputs  \
-            ghcr.io/playback-network/som:$tag -- '/inputs' 2.7
+            ghcr.io/playback-network/som:${{ steps.meta.outputs.tags }}[0] -- '/inputs' 2.7
