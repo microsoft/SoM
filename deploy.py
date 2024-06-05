@@ -128,6 +128,9 @@ class Config(BaseSettings):
     AWS_EC2_INSTANCE_TYPE: str = "g4dn.xlarge"  # (T4 16GB $0.526/hr x86_64)
     AWS_EC2_USER: str = "ubuntu"
 
+    # Note: changing this requires changing the hard-coded value in other files
+    PORT = 6092
+
     class Config:
         env_file = ".env"
         env_file_encoding = 'utf-8'
@@ -250,7 +253,7 @@ def create_key_pair(key_name: str = config.AWS_EC2_KEY_NAME, key_path: str = con
         logger.error(f"Error creating key pair: {e}")
         return None
 
-def get_or_create_security_group_id(ports: list[int] = [22, 6092]) -> str | None:
+def get_or_create_security_group_id(ports: list[int] = [22, config.PORT]) -> str | None:
     """
     Retrieves or creates a security group with the specified ports opened.
 
@@ -560,7 +563,7 @@ def get_gradio_server_url(ip_address: str) -> str:
     Returns:
         str: The Gradio server URL
     """
-    url = f"http://{ip_address}:6092"  # TODO: make port configurable
+    url = f"http://{ip_address}:{config.PORT}"
     return url
 
 def git_push_set_upstream(branch_name: str):
@@ -719,7 +722,7 @@ class Deploy:
         for instance in instances:
             public_ip = instance.public_ip_address
             if public_ip:
-                http_url = f"http://{public_ip}:6092"  # assuming port 6092 is used for the Gradio server
+                http_url = f"http://{public_ip}:{config.PORT}"
                 logger.info(f"Instance ID: {instance.id}, State: {instance.state['Name']}, HTTP URL: {http_url}")
             else:
                 logger.info(f"Instance ID: {instance.id}, State: {instance.state['Name']}, HTTP URL: Not available (no public IP)")
