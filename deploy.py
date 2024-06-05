@@ -702,19 +702,58 @@ class Deploy:
     @staticmethod
     def status() -> None:
         """
-        Lists all EC2 instances tagged with the project name.
+        Lists all EC2 instances tagged with the project name, along with their HTTP URLs.
 
         Returns:
             None
         """
         ec2 = boto3.resource('ec2')
-
         instances = ec2.instances.filter(
             Filters=[{'Name': 'tag:Name', 'Values': [config.PROJECT_NAME]}]
         )
 
         for instance in instances:
-            logger.info(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
+            public_ip = instance.public_ip_address
+            if public_ip:
+                http_url = f"http://{public_ip}:6092"  # assuming port 6092 is used for the Gradio server
+                logger.info(f"Instance ID: {instance.id}, State: {instance.state['Name']}, HTTP URL: {http_url}")
+            else:
+                logger.info(f"Instance ID: {instance.id}, State: {instance.state['Name']}, HTTP URL: Not available (no public IP)")
+
+    @staticmethod
+    def ssh(project_name: str = config.PROJECT_NAME) -> None:
+        """
+        Establishes an SSH connection to the EC2 instance associated with the specified project name using subprocess.
+
+        Args:
+            project_name (str): The project name used to tag the instance. Defaults to config.PROJECT_NAME.
+
+        Returns:
+            None
+        """
+        ec2 = boto3.resource('ec2')
+        instances = ec2.instances.filter(
+            Filters=[
+                {'Name': 'tag:Name', 'Values': [project_name]},
+                {'Name': 'instance-state-name', 'Values': ['running']}
+            ]
+        )
+
+        for instance in instances:
+            logger.info(f"Attempting to SSH into instance: ID - {instance.id}, IP - {instance.public_ip_address}")
+
+            # Build the SSH command
+            ssh_command = [
+                "ssh",
+                "-i", config.AWS_EC2_KEY_PATH,
+                f"ubuntu@{instance.public_ip_address}"
+            ]
+
+            # Start an interactive shell session
+            try:
+                subprocess.run(ssh_command, check=True)
+            except subprocess.CalledProcessError as e:
+                logger.error(f"SSH connection failed: {e}")
 
 if __name__ == "__main__":
     fire.Fire(Deploy)
