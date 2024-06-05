@@ -47,6 +47,10 @@ EOF
 
         python deploy.py status
 
+    8. (optional) SSH into the server:
+
+        python deploy.py ssh
+
 Troubleshooting Token Scope Error:
 
     If you encounter an error similar to the following when pushing changes to
