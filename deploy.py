@@ -47,6 +47,10 @@ EOF
 
         python deploy.py status
 
+    8. (optional) SSH into the server:
+
+        python deploy.py ssh
+
 Troubleshooting Token Scope Error:
 
     If you encounter an error similar to the following when pushing changes to
@@ -123,6 +127,9 @@ class Config(BaseSettings):
     #AWS_EC2_INSTANCE_TYPE: str = "p3.2xlarge"  # (V100 16GB $3.06/hr x86_64)
     AWS_EC2_INSTANCE_TYPE: str = "g4dn.xlarge"  # (T4 16GB $0.526/hr x86_64)
     AWS_EC2_USER: str = "ubuntu"
+
+    # Note: changing this requires changing the hard-coded value in other files
+    PORT = 6092
 
     class Config:
         env_file = ".env"
@@ -246,7 +253,7 @@ def create_key_pair(key_name: str = config.AWS_EC2_KEY_NAME, key_path: str = con
         logger.error(f"Error creating key pair: {e}")
         return None
 
-def get_or_create_security_group_id(ports: list[int] = [22, 6092]) -> str | None:
+def get_or_create_security_group_id(ports: list[int] = [22, config.PORT]) -> str | None:
     """
     Retrieves or creates a security group with the specified ports opened.
 
@@ -445,7 +452,7 @@ def configure_ec2_instance(
     ssh_retries = 0
     while ssh_retries < max_ssh_retries:
         try:
-            ssh_client.connect(hostname=ec2_instance_ip, username='ubuntu', pkey=key)
+            ssh_client.connect(hostname=ec2_instance_ip, username=config.AWS_EC2_USER, pkey=key)
             break  # Successful SSH connection, break out of the loop
         except Exception as e:
             ssh_retries += 1
@@ -556,7 +563,7 @@ def get_gradio_server_url(ip_address: str) -> str:
     Returns:
         str: The Gradio server URL
     """
-    url = f"http://{ip_address}:6092"  # TODO: make port configurable
+    url = f"http://{ip_address}:{config.PORT}"
     return url
 
 def git_push_set_upstream(branch_name: str):
@@ -702,19 +709,58 @@ class Deploy:
     @staticmethod
     def status() -> None:
         """
-        Lists all EC2 instances tagged with the project name.
+        Lists all EC2 instances tagged with the project name, along with their HTTP URLs.
 
         Returns:
             None
         """
         ec2 = boto3.resource('ec2')
-
         instances = ec2.instances.filter(
             Filters=[{'Name': 'tag:Name', 'Values': [config.PROJECT_NAME]}]
         )
 
         for instance in instances:
-            logger.info(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
+            public_ip = instance.public_ip_address
+            if public_ip:
+                http_url = f"http://{public_ip}:{config.PORT}"
+                logger.info(f"Instance ID: {instance.id}, State: {instance.state['Name']}, HTTP URL: {http_url}")
+            else:
+                logger.info(f"Instance ID: {instance.id}, State: {instance.state['Name']}, HTTP URL: Not available (no public IP)")
+
+    @staticmethod
+    def ssh(project_name: str = config.PROJECT_NAME) -> None:
+        """
+        Establishes an SSH connection to the EC2 instance associated with the specified project name using subprocess.
+
+        Args:
+            project_name (str): The project name used to tag the instance. Defaults to config.PROJECT_NAME.
+
+        Returns:
+            None
+        """
+        ec2 = boto3.resource('ec2')
+        instances = ec2.instances.filter(
+            Filters=[
+                {'Name': 'tag:Name', 'Values': [project_name]},
+                {'Name': 'instance-state-name', 'Values': ['running']}
+            ]
+        )
+
+        for instance in instances:
+            logger.info(f"Attempting to SSH into instance: ID - {instance.id}, IP - {instance.public_ip_address}")
+
+            # Build the SSH command
+            ssh_command = [
+                "ssh",
+                "-i", config.AWS_EC2_KEY_PATH,
+                f"{config.AWS_EC2_USER}@{instance.public_ip_address}"
+            ]
+
+            # Start an interactive shell session
+            try:
+                subprocess.run(ssh_command, check=True)
+            except subprocess.CalledProcessError as e:
+                logger.error(f"SSH connection failed: {e}")
 
 if __name__ == "__main__":
     fire.Fire(Deploy)

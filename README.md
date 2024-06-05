@@ -51,6 +51,14 @@ Our method compiles the following models to generate the set of marks:
 
 We are standing on the shoulder of the giant GPT-4V ([playground](https://chat.openai.com/))!
 
+### :rocket: Docker Quick Start
+
+# Build the image
+sudo nvidia-docker build -t som .
+
+# Run the image
+sudo docker run -d -p 6092:6092 --gpus all --name som-container som
+
 ### :rocket: Quick Start
 
 * Install segmentation packages
@@ -90,7 +98,7 @@ And you will see this interface:
 To deploy SoM to EC2 on AWS via Github Actions:
 
 1. Fork this repository and clone your fork to your local machine.
-2. Follow the instructions at the top of `deploy.py`.
+2. Follow the instructions at the top of [`deploy.py`](https://github.com/microsoft/SoM/blob/main/deploy.py).
 
 ### :point_right: Comparing standard GPT-4V and its combination with SoM Prompting
 ![teaser_github](https://github.com/microsoft/SoM/assets/11957155/e4720105-b4b2-40c0-9303-2d8f1cb27d91)
