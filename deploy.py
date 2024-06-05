@@ -449,7 +449,7 @@ def configure_ec2_instance(
     ssh_retries = 0
     while ssh_retries < max_ssh_retries:
         try:
-            ssh_client.connect(hostname=ec2_instance_ip, username='ubuntu', pkey=key)
+            ssh_client.connect(hostname=ec2_instance_ip, username=config.AWS_EC2_USER, pkey=key)
             break  # Successful SSH connection, break out of the loop
         except Exception as e:
             ssh_retries += 1
@@ -750,7 +750,7 @@ class Deploy:
             ssh_command = [
                 "ssh",
                 "-i", config.AWS_EC2_KEY_PATH,
-                f"ubuntu@{instance.public_ip_address}"
+                f"{config.AWS_EC2_USER}@{instance.public_ip_address}"
             ]
 
             # Start an interactive shell session
