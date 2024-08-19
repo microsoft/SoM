@@ -63,7 +63,7 @@ pip install git+https://github.com/facebookresearch/segment-anything.git
 # install Semantic-SAM
 pip install git+https://github.com/UX-Decoder/Semantic-SAM.git@package
 # install Deformable Convolution for Semantic-SAM
-cd ops && sh make.sh && cd ..
+cd ops && bash make.sh && cd ..
 
 # common error fix:
 python -m pip install 'git+https://github.com/MaureenZOU/detectron2-xyz.git'
