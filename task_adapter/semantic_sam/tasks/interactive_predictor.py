@@ -18,7 +18,7 @@ class SemanticSAMPredictor:
         """
         self.model = model
         self.thresh = thresh
-        self.text_size = hole_scale
+        self.text_size = text_size
         self.hole_scale = hole_scale
         self.island_scale = island_scale
         self.point = None
